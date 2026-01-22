@@ -1,0 +1,67 @@
+[
+  {
+    "id": "1",
+    "name": "Gimnasio Municipal de Penco",
+    "type": "albergue",
+    "lat": -36.7335,
+    "lng": -72.9965,
+    "address": "Calle San Vicente 123, Penco",
+    "status": "active",
+    "capacity_status": "medium",
+    "supplies_needed": ["agua", "mantas"],
+    "updated_at": "2026-02-02T10:00:00Z",
+    "contact": "+56912345678"
+  },
+  {
+    "id": "2",
+    "name": "Escuela Lirquén",
+    "type": "acopio",
+    "lat": -36.7128,
+    "lng": -72.9754,
+    "address": "Av. Lirquén 450, Lirquén",
+    "status": "active",
+    "capacity_status": "low",
+    "supplies_needed": ["alimentos no perecibles", "pañales"],
+    "updated_at": "2026-02-02T09:30:00Z",
+    "contact": "instagram: @escuelalirquen"
+  },
+  {
+    "id": "3",
+    "name": "Sede Vecinal Playa Negra",
+    "type": "albergue",
+    "lat": -36.7250,
+    "lng": -72.9910,
+    "address": "Costanera 800, Penco",
+    "status": "full",
+    "capacity_status": "full",
+    "supplies_needed": [],
+    "updated_at": "2026-02-02T11:15:00Z",
+    "contact": "No disponible"
+  },
+  {
+    "id": "4",
+    "name": "Plaza de Armas Penco (Punto Hidratación)",
+    "type": "hidratacion",
+    "lat": -36.7302,
+    "lng": -72.9998,
+    "address": "Plaza de Armas s/n",
+    "status": "active",
+    "capacity_status": "high",
+    "supplies_needed": ["botellas de agua", "isotónicas"],
+    "updated_at": "2026-02-02T12:00:00Z",
+    "contact": "Bomberos Penco"
+  },
+  {
+    "id": "5",
+    "name": "Colegio Concepción (Centro de Comando)",
+    "type": "otro",
+    "lat": -36.7900,
+    "lng": -73.0600,
+    "address": "Pedro de Valdivia, Concepción",
+    "status": "active",
+    "capacity_status": "medium",
+    "supplies_needed": ["voluntarios"],
+    "updated_at": "2026-02-02T08:00:00Z",
+    "contact": "Municipalidad"
+  }
+]

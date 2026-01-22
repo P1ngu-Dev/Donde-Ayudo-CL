@@ -1,0 +1,33 @@
+{
+  "name": "donde-ayudo-cl",
+  "version": "1.0.0",
+  "description": "Este proyecto nace ante la necesidad de centralizar la información de ayuda (centros de acopio, albergues, puntos de hidratación) en una sola plataforma simple y eficiente.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/P1ngu-Dev/Donde-Ayudo-CL.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/P1ngu-Dev/Donde-Ayudo-CL/issues"
+  },
+  "homepage": "https://github.com/P1ngu-Dev/Donde-Ayudo-CL#readme",
+  "dependencies": {
+    "leaflet": "^1.9.4"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.23",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.18",
+    "vite": "^7.3.1"
+  }
+}
