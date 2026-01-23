@@ -3,20 +3,13 @@
   "version": "1.0.0",
   "description": "Este proyecto nace ante la necesidad de centralizar la información de ayuda (centros de acopio, albergues, puntos de hidratación) en una sola plataforma simple y eficiente.",
   "main": "index.js",
-  "directories": {
-    "doc": "docs"
-  },
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "repository": {
-    "type": "git",
-    "url": "git+https://github.com/P1ngu-Dev/Donde-Ayudo-CL.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "bugs": {
     "url": "https://github.com/P1ngu-Dev/Donde-Ayudo-CL/issues"
   },
