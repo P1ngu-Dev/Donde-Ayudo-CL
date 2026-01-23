@@ -2,14 +2,14 @@
 
 Plataforma web progresiva (PWA) para centralizar información de ayuda en emergencias en Chile - Albergues, centros de acopio, puntos de hidratación y más.
 
-## ✨ Características
+## Características
 
-- **🔌 Offline-First:** Funciona sin conexión a internet gracias a Service Workers
-- **⚡ Ultra Rápido:** Sin frameworks pesados, optimizado para redes 2G/3G
-- **📱 Mobile-First:** Diseño táctil y amigable para uso en terreno
-- **🗺️ Mapa Interactivo:** Leaflet.js con marcadores SVG ligeros
-- **💾 Caché Inteligente:** Los datos persisten localmente con LocalStorage
-- **🎨 Accesible:** Alto contraste, soporte para lectores de pantalla
+- **Offline-First:** Funciona sin conexión a internet gracias a Service Workers
+- **Ultra Rápido:** Sin frameworks pesados, optimizado para redes 2G/3G
+- **Mobile-First:** Diseño táctil y amigable para uso en terreno
+- **Mapa Interactivo:** Leaflet.js con marcadores SVG ligeros
+- **Caché Inteligente:** Los datos persisten localmente con LocalStorage
+- **Accesible:** Alto contraste, soporte para lectores de pantalla
 
 ## 🚀 Inicio Rápido
 
@@ -37,7 +37,7 @@ npm run build
 npm run preview
 ```
 
-## 📦 Stack Tecnológico
+## Stack Tecnológico
 
 - **Frontend:** Vite + Vanilla JavaScript (sin React/Vue)
 - **Estilos:** Tailwind CSS v4
@@ -45,7 +45,7 @@ npm run preview
 - **PWA:** vite-plugin-pwa + Workbox
 - **Backend (futuro):** PocketBase
 
-## 🏗️ Estructura del Proyecto
+## Estructura del Proyecto
 
 ```
 Donde-Ayudo-CL/
@@ -66,7 +66,7 @@ Donde-Ayudo-CL/
 └── package.json
 ```
 
-## 🛠️ Desarrollo
+## Desarrollo
 
 ### PWA en Desarrollo
 
@@ -94,7 +94,7 @@ Esto genera:
 - Manifest.json para instalación
 - Assets con hash para cache busting
 
-## 📱 Instalación como App
+## Instalación como App
 
 ### Android
 1. Abre el sitio en Chrome
@@ -106,25 +106,13 @@ Esto genera:
 2. Toca el botón Compartir
 3. "Añadir a pantalla de inicio"
 
-## 🗺️ Uso
+## Uso
 
 1. **Ver Mapa:** Al cargar, se muestran todos los puntos disponibles
 2. **Filtrar:** Toca el botón de filtro para ver solo albergues, acopio, etc.
 3. **Ubicación:** Toca el pin para centrar el mapa en tu ubicación
 4. **Detalles:** Haz clic en cualquier marcador para ver información completa
 5. **Offline:** Los datos se guardan automáticamente para uso sin conexión
-
-## 🎯 Roadmap
-
-- [x] Fase 1: Setup y configuración
-- [x] Fase 2: Arquitectura de datos
-- [x] Fase 3: Visualización del mapa
-- [x] Fase 4: Interfaz mobile-first
-- [x] Fase 5: PWA y optimizaciones
-- [ ] Fase 6: Integración con PocketBase
-- [ ] Fase 7: Sincronización con Google Sheets
-- [ ] Fase 8: Notificaciones push
-- [ ] Fase 9: Modo colaborativo
 
 ## 🤝 Contribuir
 
@@ -146,7 +134,7 @@ Para reportar bugs o solicitar features, usa [GitHub Issues](https://github.com/
 
 ## 👥 Autores
 
-Equipo Donde Ayudo CL
+- P1ngu - [GitHub](https://github.com/P1ngu-Dev)
 
 ---
 
