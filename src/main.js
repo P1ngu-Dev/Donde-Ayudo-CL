@@ -1,8 +1,53 @@
 import './styles/main.css';
 import { mapManager, createDetailContent } from './map.js';
+import { registerSW } from 'virtual:pwa-register';
 
 // Referencias DOM (cacheadas para rendimiento)
 let elements = {};
+
+// Registrar Service Worker para PWA
+const updateSW = registerSW({
+  onNeedRefresh() {
+    // Mostrar notificación de actualización disponible
+    showUpdateNotification();
+  },
+  onOfflineReady() {
+    console.log('✅ App lista para funcionar offline');
+  },
+  immediate: true
+});
+
+/**
+ * Muestra notificación de actualización disponible
+ */
+function showUpdateNotification() {
+  const banner = document.createElement('div');
+  banner.id = 'update-banner';
+  banner.className = 'fixed top-20 left-4 right-4 z-[2000] bg-blue-600 text-white rounded-lg shadow-xl p-4 flex items-center justify-between animate-slide-down';
+  banner.innerHTML = `
+    <div class="flex items-center gap-3">
+      <svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+      </svg>
+      <span class="text-sm font-medium">Nueva versión disponible</span>
+    </div>
+    <button id="update-btn" class="bg-white text-blue-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-50 active:scale-95 transition-transform">
+      Actualizar
+    </button>
+  `;
+  
+  document.body.appendChild(banner);
+  
+  document.getElementById('update-btn')?.addEventListener('click', () => {
+    updateSW(true); // Forzar actualización
+  });
+  
+  // Auto-cerrar después de 10 segundos
+  setTimeout(() => {
+    banner.style.opacity = '0';
+    setTimeout(() => banner.remove(), 300);
+  }, 10000);
+}
 
 /**
  * Inicialización de la aplicación

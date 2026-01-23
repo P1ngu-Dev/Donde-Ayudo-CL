@@ -15,6 +15,7 @@ node_modules
 # Build outputs
 dist
 dist-ssr
+dev-dist
 *.local
 
 # Editor directories and files
@@ -43,5 +44,6 @@ coverage
 # OS generated files
 Thumbs.db
 
-# Documentation (mantener esto si prefieres que docs/ no se suba)
-docs/
+# PWA
+sw.js
+workbox-*.js
