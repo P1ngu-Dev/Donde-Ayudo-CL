@@ -174,6 +174,8 @@ export default defineConfig({
   
   // Optimización de servidor
   server: {
+    host: true, // Exponer en red local
+    allowedHosts: ['.serveousercontent.com', '.ngrok.io', '.loca.lt'], // Permitir túneles
     headers: {
       'Cache-Control': 'no-store'
     }
