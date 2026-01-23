@@ -2,12 +2,100 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Donde Ayudo CL</title>
-    <meta name="description" content="Mapa solidario de puntos de ayuda en Chile">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Donde Ayudo CL - Mapa Solidario</title>
+    <meta name="description" content="Mapa solidario de puntos de ayuda en Chile - Albergues, centros de acopio y más">
+    <meta name="theme-color" content="#1E40AF">
+    <!-- Preconnect para tiles del mapa -->
+    <link rel="preconnect" href="https://tile.openstreetmap.org" crossorigin>
   </head>
-  <body>
-    <div id="app"></div>
+  <body class="overflow-hidden bg-gray-100">
+    <div id="app" class="h-screen w-screen relative">
+      <!-- Mapa ocupa toda la pantalla -->
+      <div id="map" class="h-full w-full"></div>
+      
+      <!-- Header flotante con contador -->
+      <header class="absolute top-0 left-0 right-0 z-[1000] p-3 pointer-events-none">
+        <div class="flex items-center justify-between">
+          <div class="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg px-4 py-2 pointer-events-auto">
+            <h1 class="text-lg font-bold text-blue-800">🇨🇱 Donde Ayudo</h1>
+          </div>
+          <!-- Indicador de puntos cargados 
+          <div id="points-counter" class="bg-white/95 backdrop-blur-sm rounded-full shadow-lg px-3 py-1 pointer-events-auto text-sm font-medium text-gray-600">
+            <span id="counter-value">--</span> puntos
+          </div> -->
+        </div>
+        <!-- Indicador offline -->
+        <div id="offline-banner" class="hidden mt-2 bg-amber-500 text-white text-center py-1 px-3 rounded-lg text-sm font-medium pointer-events-auto flex items-center justify-center gap-2">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+          <span>Sin conexión - Mostrando datos guardados</span>
+        </div>
+      </header>
+
+      <!-- Controles flotantes (izquierda) -->
+      <div id="controls" class="absolute bottom-28 left-4 z-[1000] flex flex-col gap-3">
+        <button id="btn-locate" 
+          class="btn-control w-14 h-14 bg-white rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-transform"
+          aria-label="Mi ubicación"
+          title="Mi ubicación">
+          <span class="sr-only">Mi ubicación</span>
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </button>
+        
+        <button id="btn-filter" 
+          class="btn-control w-14 h-14 bg-white rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-transform"
+          aria-label="Filtrar puntos"
+          title="Filtrar">
+          <span class="sr-only">Filtrar</span>
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+        </button>
+      </div>
+
+      <!-- Panel de filtros (Bottom Sheet) -->
+      <div id="filter-panel" class="bottom-sheet">
+        <div class="bottom-sheet-handle"></div>
+        <h2 class="font-bold text-lg mb-4 text-gray-800">Filtrar por tipo</h2>
+        <div class="grid grid-cols-2 gap-3">
+          <button data-filter="todos" class="filter-btn active">
+            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+            <span>Todos</span>
+          </button>
+          <button data-filter="albergue" class="filter-btn">
+            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            <span>Albergues</span>
+          </button>
+          <button data-filter="acopio" class="filter-btn">
+            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            <span>Acopio</span>
+          </button>
+          <button data-filter="hidratacion" class="filter-btn">
+            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+            <span>Hidratación</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Bottom Sheet de Detalle de Punto -->
+      <div id="detail-panel" class="bottom-sheet">
+        <div class="bottom-sheet-handle"></div>
+        <div id="detail-content">
+          <!-- Contenido dinámico -->
+        </div>
+      </div>
+
+      <!-- Overlay para cerrar paneles -->
+      <div id="panel-overlay" class="hidden fixed inset-0 bg-black/40 z-[1000] transition-opacity"></div>
+
+      <!-- Loading inicial -->
+      <div id="loading-screen" class="fixed inset-0 bg-blue-900 z-[2000] flex items-center justify-center">
+        <div class="text-center text-white">
+          <div class="loading-spinner mb-4"></div>
+          <p class="text-lg font-medium">Cargando mapa...</p>
+          <p class="text-sm opacity-75 mt-1">Preparando puntos de ayuda</p>
+        </div>
+      </div>
+    </div>
+    
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
