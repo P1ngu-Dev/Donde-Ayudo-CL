@@ -2,7 +2,7 @@
 // Fuente de verdad: API (simulada por mock) -> LocalStorage -> Memoria
 
 const STORAGE_KEY = 'donde-ayudo-data';
-const MOCK_URL = '/src/data/mock-points.json'; // Vite servirá esto como estático en dev
+const MOCK_URL = '/src/data/data1.json'; // Vite servirá esto como estático en dev
 
 export class DataRepository {
   constructor() {
