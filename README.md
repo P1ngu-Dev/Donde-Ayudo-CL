@@ -11,7 +11,7 @@ Plataforma web progresiva (PWA) para centralizar información de ayuda en emerge
 - **Caché Inteligente:** Los datos persisten localmente con LocalStorage
 - **Accesible:** Alto contraste, soporte para lectores de pantalla
 
-## 🚀 Inicio Rápido
+## Inicio Rápido
 
 ### Prerrequisitos
 - Node.js 18+ 
@@ -114,7 +114,7 @@ Esto genera:
 4. **Detalles:** Haz clic en cualquier marcador para ver información completa
 5. **Offline:** Los datos se guardan automáticamente para uso sin conexión
 
-## 🤝 Contribuir
+## Contribuir
 
 Las contribuciones son bienvenidas. Por favor:
 
@@ -124,15 +124,15 @@ Las contribuciones son bienvenidas. Por favor:
 4. Push a la rama (`git push origin feature/AmazingFeature`)
 5. Abre un Pull Request
 
-## 📄 Licencia
+## Licencia
 
 ISC License
 
-## 🆘 Soporte
+## Soporte
 
 Para reportar bugs o solicitar features, usa [GitHub Issues](https://github.com/P1ngu-Dev/Donde-Ayudo-CL/issues)
 
-## 👥 Autores
+## Autores
 
 - P1ngu - [GitHub](https://github.com/P1ngu-Dev)
 

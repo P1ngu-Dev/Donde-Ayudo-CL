@@ -1,5 +1,5 @@
 import './styles/main.css';
-import { mapManager, createDetailContent } from './map.js';
+import { mapManager, createDetailContent, getColorForType, getTypeLabel, normalizeType } from './map.js';
 import { registerSW } from 'virtual:pwa-register';
 
 // Referencias DOM (cacheadas para rendimiento)
@@ -12,7 +12,7 @@ const updateSW = registerSW({
     showUpdateNotification();
   },
   onOfflineReady() {
-    console.log('✅ App lista para funcionar offline');
+    // App lista para funcionar offline
   },
   immediate: true
 });
@@ -53,8 +53,6 @@ function showUpdateNotification() {
  * Inicialización de la aplicación
  */
 async function initApp() {
-  console.log('🚀 Iniciando Donde Ayudo CL...');
-  
   // Cachear referencias DOM
   cacheElements();
   
@@ -71,9 +69,9 @@ async function initApp() {
   try {
     const points = await mapManager.loadPoints();
     updateCounter(points.length);
-    console.log(`✅ ${points.length} puntos cargados`);
+    updateLegend(points); // Generar leyenda dinámica
   } catch (error) {
-    console.error('❌ Error cargando puntos:', error);
+    // Error cargando puntos
     updateCounter(0);
   }
   
@@ -91,14 +89,22 @@ function cacheElements() {
   elements = {
     btnLocate: document.getElementById('btn-locate'),
     btnFilter: document.getElementById('btn-filter'),
+    btnMenu: document.getElementById('btn-menu'),
+    btnCloseMenu: document.getElementById('btn-close-menu'),
+    legendToggle: document.getElementById('legend-toggle'),
+    legendContent: document.getElementById('legend-content'),
+    legendChevron: document.getElementById('legend-chevron'),
     filterPanel: document.getElementById('filter-panel'),
     detailPanel: document.getElementById('detail-panel'),
     detailContent: document.getElementById('detail-content'),
+    sideMenu: document.getElementById('side-menu'),
     panelOverlay: document.getElementById('panel-overlay'),
     filterButtons: document.querySelectorAll('.filter-btn'),
     counterValue: document.getElementById('counter-value'),
     offlineBanner: document.getElementById('offline-banner'),
-    loadingScreen: document.getElementById('loading-screen')
+    loadingScreen: document.getElementById('loading-screen'),
+    statsTotal: document.getElementById('stats-total'),
+    statsActive: document.getElementById('stats-active')
   };
 }
 
@@ -108,6 +114,20 @@ function cacheElements() {
 function updateCounter(count) {
   if (elements.counterValue) {
     elements.counterValue.textContent = count;
+  }
+  // Actualizar también las estadísticas del menú
+  updateStats(count);
+}
+
+/**
+ * Actualiza las estadísticas en el menú lateral
+ */
+function updateStats(totalPoints = 0) {
+  if (elements.statsTotal) {
+    elements.statsTotal.textContent = totalPoints;
+  }
+  if (elements.statsActive) {
+    elements.statsActive.textContent = totalPoints;
   }
 }
 
@@ -176,18 +196,105 @@ function closePanel(panel) {
 }
 
 /**
+ * Abre el menú lateral
+ */
+function openSideMenu() {
+  if (!elements.sideMenu) return;
+  elements.panelOverlay?.classList.remove('hidden');
+  elements.sideMenu.classList.remove('translate-x-full');
+}
+
+/**
+ * Cierra el menú lateral
+ */
+function closeSideMenu() {
+  if (!elements.sideMenu) return;
+  elements.sideMenu.classList.add('translate-x-full');
+  // Solo ocultar overlay si no hay otros paneles abiertos
+  if (!elements.filterPanel?.classList.contains('show') && 
+      !elements.detailPanel?.classList.contains('show')) {
+    elements.panelOverlay?.classList.add('hidden');
+  }
+}
+
+/**
  * Cierra todos los paneles
  */
 function closeAllPanels() {
   closePanel(elements.filterPanel);
   closePanel(elements.detailPanel);
+  closeSideMenu();
   elements.panelOverlay?.classList.add('hidden');
+}
+
+/**
+ * Actualiza la leyenda con los tipos de puntos disponibles
+ */
+function updateLegend(points) {
+  if (!elements.legendToggle || !elements.legendContent) return;
+  
+  // Obtener tipos únicos normalizados (agrupa tipos similares)
+  const rawTypes = points.map(p => p.type).filter(Boolean);
+  const normalizedTypesSet = new Set(rawTypes.map(t => normalizeType(t)));
+  const types = [...normalizedTypesSet];
+  
+  if (types.length === 0) return;
+  
+  // Actualizar botón colapsado con texto e icono de leyenda
+  const toggleButton = elements.legendToggle;
+  toggleButton.innerHTML = `
+    <svg class="w-5 h-5 text-gray-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+      <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+    </svg>
+    <span class="text-sm font-medium text-gray-700">Leyenda</span>
+    <svg id="legend-chevron" class="w-4 h-4 text-gray-600 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="6 9 12 15 18 9"/>
+    </svg>
+  `;
+  
+  // Actualizar referencia al chevron después de reconstruir el HTML
+  elements.legendChevron = document.getElementById('legend-chevron');
+  
+  // Generar contenido expandido
+  const itemsHTML = types.map(type => {
+    const color = getColorForType(type);
+    const label = getTypeLabel(type);
+    return `
+      <div class="flex items-center gap-2">
+        <div class="w-4 h-4 rounded-full" style="background: ${color};"></div>
+        <span class="text-xs text-gray-700">${label}</span>
+      </div>
+    `;
+  }).join('');
+  
+  // Actualizar contenido expandido
+  elements.legendContent.innerHTML = itemsHTML;
+}
+
+/**
+ * Toggle de la leyenda colapsable
+ */
+function toggleLegend() {
+  const content = elements.legendContent;
+  const chevron = elements.legendChevron;
+  
+  if (content?.classList.contains('hidden')) {
+    content.classList.remove('hidden');
+    chevron?.classList.add('rotate-180');
+  } else {
+    content?.classList.add('hidden');
+    chevron?.classList.remove('rotate-180');
+  }
 }
 
 /**
  * Configura los event listeners de los controles
  */
 function setupControls() {
+  // Toggle de leyenda
+  elements.legendToggle?.addEventListener('click', toggleLegend);
+  
   // Botón "Mi ubicación"
   elements.btnLocate?.addEventListener('click', async () => {
     const btn = elements.btnLocate;
@@ -215,6 +322,19 @@ function setupControls() {
       closeAllPanels();
       showPanel(elements.filterPanel);
     }
+  });
+
+  // Abrir menú lateral
+  elements.btnMenu?.addEventListener('click', () => {
+    // Cerrar otros paneles primero
+    closePanel(elements.filterPanel);
+    closePanel(elements.detailPanel);
+    openSideMenu();
+  });
+
+  // Cerrar menú lateral
+  elements.btnCloseMenu?.addEventListener('click', () => {
+    closeSideMenu();
   });
 
   // Cerrar paneles al tocar overlay

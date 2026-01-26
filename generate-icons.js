@@ -24,7 +24,7 @@ const createIconSVG = (size) => `<svg width="${size}" height="${size}" viewBox="
   <rect x="226" y="360" width="60" height="20" fill="white" rx="4"/>
 </svg>`;
 
-console.log('📱 Generando íconos PWA...');
+console.log('Generando íconos PWA...');
 
 sizes.forEach(size => {
   const filename = `icon-${size}x${size}.png`;
@@ -33,11 +33,11 @@ sizes.forEach(size => {
   
   // Por ahora generamos SVG (navegadores modernos los soportan)
   writeFileSync(svgPath, createIconSVG(size));
-  console.log(`✓ Generado: ${svgFilename}`);
+  console.log(`Generado: ${svgFilename}`);
 });
 
-console.log('\n✅ Íconos generados exitosamente');
-console.log('\n⚠️  Nota: Para mejor compatibilidad, convierte los SVG a PNG usando:');
+console.log('\nÍconos generados exitosamente');
+console.log('\nNota: Para mejor compatibilidad, convierte los SVG a PNG usando:');
 console.log('   - ImageMagick: convert icon.svg icon.png');
 console.log('   - Online: https://cloudconvert.com/svg-to-png');
 console.log('   - O instala sharp: npm i -D sharp');

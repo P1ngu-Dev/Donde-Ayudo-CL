@@ -29,23 +29,24 @@
       <!-- Mapa ocupa toda la pantalla -->
       <div id="map" class="h-full w-full"></div>
       
-      <!-- Header flotante con contador -->
-      <header class="absolute top-0 left-0 right-0 z-[1000] p-3 pointer-events-none">
-        <div class="flex items-center justify-between">
-          <div class="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg px-4 py-2 pointer-events-auto">
-            <h1 class="text-lg font-bold text-blue-800">🇨🇱 Donde Ayudo</h1>
-          </div>
-          <!-- Indicador de puntos cargados 
-          <div id="points-counter" class="bg-white/95 backdrop-blur-sm rounded-full shadow-lg px-3 py-1 pointer-events-auto text-sm font-medium text-gray-600">
-            <span id="counter-value">--</span> puntos
-          </div> -->
+      <!-- Leyenda Colapsable en esquina superior -->
+      <div id="legend" class="absolute top-3 left-3 z-[1000] pointer-events-auto">
+        <!-- Botón de leyenda colapsado (generado dinámicamente) -->
+        <button id="legend-toggle" class="bg-white/95 backdrop-blur-sm rounded-lg shadow-lg px-3 py-2 flex items-center gap-2 active:scale-95 transition-transform" aria-label="Ver leyenda">
+          <!-- Contenido generado por JavaScript -->
+        </button>
+        
+        <!-- Contenido expandido (generado dinámicamente) -->
+        <div id="legend-content" class="hidden mt-2 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg p-3 space-y-2">
+          <!-- Contenido generado por JavaScript -->
         </div>
-        <!-- Indicador offline -->
-        <div id="offline-banner" class="hidden mt-2 bg-amber-500 text-white text-center py-1 px-3 rounded-lg text-sm font-medium pointer-events-auto flex items-center justify-center gap-2">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
-          <span>Sin conexión - Mostrando datos guardados</span>
-        </div>
-      </header>
+      </div>
+      
+      <!-- Indicador offline -->
+      <div id="offline-banner" class="hidden absolute top-3 left-3 right-3 z-[999] bg-amber-500 text-white text-center py-2 px-3 rounded-lg text-sm font-medium pointer-events-auto flex items-center justify-center gap-2 shadow-lg">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+        <span>Sin conexión</span>
+      </div>
 
       <!-- Controles flotantes (izquierda) -->
       <div id="controls" class="absolute bottom-28 left-4 z-[1000] flex flex-col gap-3">
@@ -63,6 +64,19 @@
           title="Filtrar">
           <span class="sr-only">Filtrar</span>
           <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+        </button>
+      </div>
+
+      <!-- Botón de menú (derecha) -->
+      <div class="absolute top-4 right-4 z-[1000]">
+        <button id="btn-menu" 
+          class="btn-control w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-transform"
+          aria-label="Abrir menú"
+          title="Menú">
+          <span class="sr-only">Menú</span>
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
         </button>
       </div>
 
@@ -100,6 +114,192 @@
 
       <!-- Overlay para cerrar paneles -->
       <div id="panel-overlay" class="hidden fixed inset-0 bg-black/40 z-[1000] transition-opacity"></div>
+
+      <!-- Menú lateral (Side Panel) -->
+      <div id="side-menu" class="fixed top-0 right-0 h-full w-80 max-w-[85vw] bg-white shadow-2xl z-[1500] transform translate-x-full transition-transform duration-300 ease-in-out overflow-y-auto">
+        <div class="flex flex-col h-full">
+          <!-- Header del menú -->
+          <div class="flex items-center justify-between p-4 border-b border-gray-200 bg-blue-800 text-white">
+            <h2 class="text-lg font-bold">Menú</h2>
+            <button id="btn-close-menu" class="p-2 hover:bg-blue-700 rounded-full transition-colors" aria-label="Cerrar menú">
+              <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Contenido del menú -->
+          <div class="flex-1 overflow-y-auto">
+            <!-- Sección: Información -->
+            <div class="p-4 border-b border-gray-200">
+              <h3 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+                <svg class="w-5 h-5 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+                Acerca de Donde Ayudo
+              </h3>
+              <div class="text-sm text-gray-600 space-y-3">
+                <p>
+                  <strong class="text-gray-800">Donde Ayudo</strong> es un mapa colaborativo que centraliza puntos de ayuda verificados durante emergencias en Chile.
+                </p>
+                
+                <!-- Optimizado para 3G -->
+                <div class="bg-green-50 p-3 rounded-lg border border-green-200">
+                  <p class="font-medium text-green-800 mb-2 flex items-center gap-2">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                    </svg>
+                    Funciona con señal baja
+                  </p>
+                  <ul class="text-xs text-green-900 space-y-1">
+                    <li>✓ Optimizado para redes 3G/4G lentas</li>
+                    <li>✓ Funciona offline después de cargar</li>
+                    <li>✓ Pesa menos que una foto</li>
+                  </ul>
+                </div>
+
+                <!-- Ética de datos -->
+                <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                  <p class="font-medium text-blue-800 mb-2 flex items-center gap-2">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                      <path d="M9 12l2 2 4-4"/>
+                    </svg>
+                    Datos verificados y éticos
+                  </p>
+                  <p class="text-xs text-blue-900">
+                    Toda la información es verificada por equipos de voluntarios antes de publicarse. No compartimos datos personales sin consentimiento.
+                  </p>
+                </div>
+                
+                <div class="bg-gray-50 p-3 rounded-lg">
+                  <p class="font-medium text-gray-800 mb-2">¿Cómo usar el mapa?</p>
+                  <ul class="list-disc list-inside space-y-1 text-gray-700 text-xs">
+                    <li>Toca los puntos para ver detalles</li>
+                    <li>Usa los filtros por tipo de ayuda</li>
+                    <li>Localízate con el botón GPS</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- Sección: Aportar datos -->
+            <div class="p-4 border-b border-gray-200">
+              <h3 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+                <svg class="w-5 h-5 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 5v14M5 12h14"/>
+                </svg>
+                Aportar Información
+              </h3>
+              <div class="text-sm text-gray-600 space-y-3">
+                <p class="text-gray-700">¿Tienes información que agregar?</p>
+                
+                <!-- Opción 1: Solicitud rápida (no verificada) -->
+                <div class="border-2 border-orange-200 rounded-lg p-3 bg-orange-50">
+                  <div class="flex items-start gap-2 mb-2">
+                    <svg class="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    <div>
+                      <p class="font-bold text-orange-900">Solicitud de ayuda</p>
+                      <p class="text-xs text-orange-800 mt-1">Rápida y sencilla (pendiente de verificación)</p>
+                    </div>
+                  </div>
+                  <a href="https://forms.gle/solicitud-rapida" 
+                     target="_blank"
+                     rel="noopener noreferrer"
+                     class="block w-full bg-orange-600 hover:bg-orange-700 text-white text-center font-bold py-2.5 px-4 rounded-lg transition-colors active:scale-95 transform text-sm">
+                    Reportar necesidad urgente
+                  </a>
+                  <p class="text-xs text-orange-700 mt-2">
+                    Para casos urgentes. Se revisa y publica en menos de 2 horas.
+                  </p>
+                </div>
+
+                <!-- Opción 2: Datos verificados en lote -->
+                <div class="border-2 border-green-200 rounded-lg p-3 bg-green-50">
+                  <div class="flex items-start gap-2 mb-2">
+                    <svg class="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+                    </svg>
+                    <div>
+                      <p class="font-bold text-green-900">Datos verificados en lote</p>
+                      <p class="text-xs text-green-800 mt-1">Para organizaciones y voluntarios con múltiples puntos</p>
+                    </div>
+                  </div>
+                  <a href="https://forms.gle/datos-verificados-lote" 
+                     target="_blank"
+                     rel="noopener noreferrer"
+                     class="block w-full bg-green-600 hover:bg-green-700 text-white text-center font-bold py-2.5 px-4 rounded-lg transition-colors active:scale-95 transform text-sm">
+                    Enviar datos en lote
+                  </a>
+                  <p class="text-xs text-green-700 mt-2">
+                    Ideal si tienes 5+ puntos verificados. Revisamos antes de publicar.
+                  </p>
+                </div>
+
+                <p class="text-xs text-gray-500 pt-2 border-t border-gray-200">
+                  También puedes escribir a <a href="mailto:contacto@dondeayudo.cl" class="text-blue-600 underline font-medium">contacto@dondeayudo.cl</a>
+                </p>
+              </div>
+            </div>
+
+            <!-- Sección: Estadísticas -->
+            <div class="p-4 border-b border-gray-200">
+              <h3 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+                <svg class="w-5 h-5 text-purple-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+                </svg>
+                Estadísticas
+              </h3>
+              <div class="grid grid-cols-2 gap-3">
+                <div class="bg-gray-50 p-3 rounded-lg text-center">
+                  <div class="text-2xl font-bold text-blue-600" id="stats-total">--</div>
+                  <div class="text-xs text-gray-600">Puntos totales</div>
+                </div>
+                <div class="bg-gray-50 p-3 rounded-lg text-center">
+                  <div class="text-2xl font-bold text-green-600" id="stats-active">--</div>
+                  <div class="text-xs text-gray-600">Activos ahora</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Sección: Redes sociales / Enlaces -->
+            <div class="p-4">
+              <h3 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+                <svg class="w-5 h-5 text-gray-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                </svg>
+                Síguenos
+              </h3>
+              <div class="flex gap-3">
+                <a href="https://twitter.com/dondeayudocl" target="_blank" rel="noopener noreferrer" 
+                   class="flex-1 bg-gray-100 hover:bg-gray-200 p-3 rounded-lg text-center transition-colors"
+                   aria-label="Twitter">
+                  <svg class="w-6 h-6 mx-auto text-gray-700" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"/>
+                  </svg>
+                </a>
+                <a href="https://instagram.com/dondeayudocl" target="_blank" rel="noopener noreferrer"
+                   class="flex-1 bg-gray-100 hover:bg-gray-200 p-3 rounded-lg text-center transition-colors"
+                   aria-label="Instagram">
+                  <svg class="w-6 h-6 mx-auto text-gray-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+                  </svg>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer del menú -->
+          <div class="p-4 border-t border-gray-200 bg-gray-50">
+            <p class="text-xs text-center text-gray-500">
+              Hecho con ❤️ para Chile<br/>
+              <span class="text-gray-400">v1.0.0</span>
+            </p>
+          </div>
+        </div>
+      </div>
 
       <!-- Loading inicial -->
       <div id="loading-screen" class="fixed inset-0 bg-blue-900 z-[2000] flex items-center justify-center">

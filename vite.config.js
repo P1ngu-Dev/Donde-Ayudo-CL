@@ -86,25 +86,13 @@ export default defineConfig({
       
       workbox: {
         // Estrategia de caché agresiva para funcionamiento offline
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,json,woff2}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         
-        // Runtime caching para recursos externos
+        // NO cachear tiles de OpenStreetMap ni API externa
+        navigateFallbackDenylist: [/^\/api/, /tile\.openstreetmap\.org/],
+        
+        // Runtime caching solo para API y recursos propios
         runtimeCaching: [
-          {
-            // Cachear tiles de OpenStreetMap
-            urlPattern: /^https:\/\/tile\.openstreetmap\.org\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'osm-tiles-cache',
-              expiration: {
-                maxEntries: 500,
-                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 días
-              },
-              cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
-          },
           {
             // Cachear API/datos (cuando se implemente PocketBase)
             urlPattern: /^https:\/\/api\.dondeayudo\.cl\/.*/i,
@@ -112,23 +100,22 @@ export default defineConfig({
             options: {
               cacheName: 'api-cache',
               expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 5 // 5 minutos
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 10 // 10 minutos
               },
-              networkTimeoutSeconds: 10
+              networkTimeoutSeconds: 3
             }
           },
           {
             // Cachear otros recursos
             urlPattern: /^https?.*/,
-            handler: 'NetworkFirst',
+            handler: 'CacheFirst',
             options: {
               cacheName: 'others-cache',
               expiration: {
-                maxEntries: 200,
+                maxEntries: 100,
                 maxAgeSeconds: 60 * 60 * 24 // 1 día
-              },
-              networkTimeoutSeconds: 10
+              }
             }
           }
         ],
@@ -139,8 +126,7 @@ export default defineConfig({
         clientsClaim: true,
         
         // Navegación offline fallback
-        navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api/]
+        navigateFallback: '/index.html'
       },
       
       devOptions: {
@@ -157,19 +143,28 @@ export default defineConfig({
     minify: 'terser',
     terserOptions: {
       compress: {
-        drop_console: true, // Eliminar console.log en producción
-        drop_debugger: true
+        drop_console: true,
+        drop_debugger: true,
+        pure_funcs: ['console.log', 'console.info', 'console.debug', 'console.warn']
       }
     },
     rollupOptions: {
       output: {
         manualChunks: {
           'leaflet': ['leaflet']
-        }
+        },
+        // Mejor estrategia de nombres para cache
+        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]'
       }
     },
     // Tamaño de chunk warning
-    chunkSizeWarningLimit: 600
+    chunkSizeWarningLimit: 500,
+    // Comprimir CSS
+    cssMinify: true,
+    // Reportar tamaño comprimido
+    reportCompressedSize: true
   },
   
   // Optimización de servidor

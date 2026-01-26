@@ -8,6 +8,7 @@ export class DataRepository {
   constructor() {
     this.points = [];
     this.lastUpdated = null;
+    this.cache = new Map(); // Cache en memoria para filtros
   }
 
   /**
@@ -27,13 +28,16 @@ export class DataRepository {
     // 2. Intentar actualizar desde red (Mock/API)
     try {
       const freshData = await this.fetchFromNetwork();
-      this.saveToStorage(freshData);
-      this.points = freshData;
-      console.log('Datos actualizados desde red');
+      // Solo actualizar si los datos son diferentes
+      if (JSON.stringify(freshData) !== JSON.stringify(this.points)) {
+        this.saveToStorage(freshData);
+        this.points = freshData;
+        this.cache.clear(); // Limpiar cache de filtros
+      }
     } catch (error) {
-      console.warn('Modo offline: usando datos en caché', error);
+      // Modo offline: usando datos en caché
       if (this.points.length === 0) {
-        console.error('No hay datos disponibles ni en caché ni en red');
+        // No hay datos disponibles
       }
     }
     
@@ -47,9 +51,8 @@ export class DataRepository {
         const parsed = JSON.parse(raw);
         this.points = parsed.data || [];
         this.lastUpdated = parsed.timestamp;
-        console.log('Datos cargados de LocalStorage', this.points.length);
       } catch (e) {
-        console.error('Error al leer LocalStorage', e);
+        // Error al leer LocalStorage
         localStorage.removeItem(STORAGE_KEY);
       }
     }
@@ -73,7 +76,7 @@ export class DataRepository {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     } catch (e) {
-      console.warn('Quota excedida en LocalStorage', e);
+      // Quota excedida en LocalStorage - ignorar silenciosamente
     }
   }
 
@@ -83,7 +86,15 @@ export class DataRepository {
 
   getPointsByType(type) {
     if (!type || type === 'todos') return this.points;
-    return this.points.filter(p => p.type === type);
+    
+    // Usar cache para evitar filtrar repetidamente
+    if (this.cache.has(type)) {
+      return this.cache.get(type);
+    }
+    
+    const filtered = this.points.filter(p => p.type === type);
+    this.cache.set(type, filtered);
+    return filtered;
   }
 }
 
