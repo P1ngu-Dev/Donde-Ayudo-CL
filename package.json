@@ -23,7 +23,8 @@
   },
   "homepage": "https://github.com/P1ngu-Dev/Donde-Ayudo-CL#readme",
   "dependencies": {
-    "leaflet": "^1.9.4"
+    "leaflet": "^1.9.4",
+    "pocketbase": "^0.26.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",
