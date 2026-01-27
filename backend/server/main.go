@@ -31,9 +31,9 @@ func main() {
 	r := chi.NewRouter()
 
 	// Middleware global
-	r.Use(middleware.Logger)          // Log de requests
-	r.Use(middleware.Recoverer)       // Recuperación de panics
-	r.Use(mw.CORS())                  // CORS para desarrollo
+	r.Use(middleware.Logger)    // Log de requests
+	r.Use(middleware.Recoverer) // Recuperación de panics
+	r.Use(mw.CORS())            // CORS para desarrollo
 
 	// ==================== RUTAS PÚBLICAS ====================
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
