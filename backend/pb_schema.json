@@ -1,0 +1,198 @@
+[
+  {
+    "name": "puntos",
+    "type": "base",
+    "system": false,
+    "fields": [
+      {
+        "name": "nombre",
+        "type": "text",
+        "required": true
+      },
+      {
+        "name": "latitud",
+        "type": "number",
+        "required": true
+      },
+      {
+        "name": "longitud",
+        "type": "number",
+        "required": true
+      },
+      {
+        "name": "direccion",
+        "type": "text",
+        "required": false
+      },
+      {
+        "name": "ciudad",
+        "type": "text",
+        "required": false
+      },
+      {
+        "name": "categoria",
+        "type": "select",
+        "required": true,
+        "options": {
+          "values": ["informacion", "acopio", "solicitud_ayuda"]
+        }
+      },
+      {
+        "name": "subtipo",
+        "type": "text",
+        "required": false
+      },
+      {
+        "name": "contacto_principal",
+        "type": "text",
+        "required": false
+      },
+      {
+        "name": "contacto_nombre",
+        "type": "text",
+        "required": false
+      },
+      {
+        "name": "horario",
+        "type": "text",
+        "required": false
+      },
+      {
+        "name": "estado",
+        "type": "select",
+        "required": true,
+        "options": {
+          "values": ["publicado", "revision", "oculto", "rechazado"]
+        }
+      },
+      {
+        "name": "entidad_verificadora",
+        "type": "text",
+        "required": false
+      },
+      {
+        "name": "fecha_verificacion",
+        "type": "date",
+        "required": false
+      },
+      {
+        "name": "verificado_por",
+        "type": "relation",
+        "required": false,
+        "options": {
+          "collectionId": "_pb_users_auth_",
+          "cascadeDelete": false,
+          "maxSelect": 1
+        }
+      },
+      {
+        "name": "notas_internas",
+        "type": "editor",
+        "required": false
+      },
+      {
+        "name": "capacidad_estado",
+        "type": "select",
+        "required": false,
+        "options": {
+          "values": ["abierto", "por_llenar", "colapsado", "cerrado"]
+        }
+      },
+      {
+        "name": "necesidades_raw",
+        "type": "text",
+        "required": false
+      },
+      {
+        "name": "necesidades_tags",
+        "type": "json",
+        "required": false
+      },
+      {
+        "name": "nombre_zona",
+        "type": "text",
+        "required": false
+      },
+      {
+        "name": "habitado_actualmente",
+        "type": "bool",
+        "required": false
+      },
+      {
+        "name": "cantidad_ninos",
+        "type": "number",
+        "required": false
+      },
+      {
+        "name": "cantidad_adultos",
+        "type": "number",
+        "required": false
+      },
+      {
+        "name": "cantidad_ancianos",
+        "type": "number",
+        "required": false
+      },
+      {
+        "name": "animales_detalle",
+        "type": "text",
+        "required": false
+      },
+      {
+        "name": "riesgo_asbesto",
+        "type": "bool",
+        "required": false
+      },
+      {
+        "name": "evidencia_fotos",
+        "type": "file",
+        "required": false,
+        "options": {
+          "maxSelect": 10,
+          "maxSize": 5242880,
+          "mimeTypes": ["image/jpeg", "image/png", "image/webp"]
+        }
+      },
+      {
+        "name": "logistica_llegada",
+        "type": "text",
+        "required": false
+      },
+      {
+        "name": "requiere_voluntarios",
+        "type": "bool",
+        "required": false
+      },
+      {
+        "name": "urgencia",
+        "type": "select",
+        "required": false,
+        "options": {
+          "values": ["baja", "media", "alta", "critica"]
+        }
+      }
+    ]
+  },
+  {
+    "name": "solicitudes_externas",
+    "type": "base",
+    "system": false,
+    "fields": [
+      {
+        "name": "origen",
+        "type": "text",
+        "required": false
+      },
+      {
+        "name": "datos_brutos",
+        "type": "json",
+        "required": true
+      },
+      {
+        "name": "procesado",
+        "type": "bool",
+        "required": false
+      }
+    ]
+  }
+]

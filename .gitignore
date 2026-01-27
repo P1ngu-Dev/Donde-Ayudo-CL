@@ -52,6 +52,9 @@ Thumbs.db
 # PWA
 sw.js
 workbox-*.js
-backend/
+
+# PocketBase
+backend/pocketbase
+backend/pb_data/
 
 .venv
