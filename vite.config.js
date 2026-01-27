@@ -2,6 +2,18 @@ import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:8090',
+        changeOrigin: true
+      },
+      '/_': {
+        target: 'http://127.0.0.1:8090',
+        changeOrigin: true
+      }
+    }
+  },
   plugins: [
     VitePWA({
       registerType: 'autoUpdate',

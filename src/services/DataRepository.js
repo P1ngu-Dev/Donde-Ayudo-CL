@@ -6,7 +6,8 @@ import PocketBase from 'pocketbase';
 const STORAGE_KEY = 'donde-ayudo-data';
 
 // URL de PocketBase - cambiar en producción
-const POCKETBASE_URL = import.meta.env.VITE_POCKETBASE_URL || 'http://127.0.0.1:8090';
+// Usamos ruta relativa para aprovechar el proxy de Vite en desarrollo y la misma ruta en prod
+const POCKETBASE_URL = import.meta.env.VITE_POCKETBASE_URL || '/';
 
 // Instancia global de PocketBase
 export const pb = new PocketBase(POCKETBASE_URL);
@@ -140,9 +141,10 @@ export class DataRepository {
     }
     
     // Filtrar en cliente si necesario
+    // Permitimos SOS en revisión para que aparezcan como reportes de la comunidad
     const records = includeUnverified 
       ? allRecords 
-      : allRecords.filter(r => r.estado === 'publicado');
+      : allRecords.filter(r => r.estado === 'publicado' || (r.estado === 'revision' && r.categoria === 'sos'));
     
     console.log(`🌐 Obtenidos ${records.length} puntos desde PocketBase (${allRecords.length} totales)`);
     
@@ -213,6 +215,44 @@ export class DataRepository {
     } catch (error) {
       console.error('❌ Error enviando solicitud:', error);
       return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Envía una alerta SOS directa al mapa (estado: revision)
+   * Updated: Force Cache Refresh
+   */
+  async submitSOS(data) {
+    try {
+      // 1. Crear registro en colección 'puntos'
+      const record = await pb.collection('puntos').create({
+         latitud: data.lat,
+         longitud: data.lng,
+         categoria: 'sos',
+         subtipo: data.type || 'solicitud',
+         estado: 'revision', // Visible pero marcado como no verificado
+         urgencia: 'alta',
+         nombre: data.nombre || 'Solicitud de Ayuda',
+         necesidades_raw: data.descripcion,
+         contacto_principal: data.contacto,
+         entidad_verificadora: 'Comunidad (Sin verificar)',
+         fecha_verificacion: new Date().toISOString() // Fecha del reporte
+      });
+      
+      console.log('🚨 SOS enviado:', record.id);
+      
+      // 2. Invalidar caché para que aparezca al refrescar
+      this.cache.clear();
+      localStorage.removeItem(STORAGE_KEY);
+      
+      // 3. Forzar recarga inmediata de puntos en memoria para UI reactiva
+      // (Opcional, pero ayuda a que el usuario vea su punto al instante)
+      await this.refresh();
+      
+      return { success: true, id: record.id };
+    } catch (error) {
+       console.error('❌ Error enviando SOS:', error);
+       return { success: false, error: error.message };
     }
   }
 

@@ -1,5 +1,6 @@
 import './styles/main.css';
 import { mapManager, createDetailContent, getColorForType, getTypeLabel, normalizeType } from './map.js';
+import { repository } from './services/DataRepository.js';
 import { registerSW } from 'virtual:pwa-register';
 
 // Referencias DOM (cacheadas para rendimiento)
@@ -98,6 +99,18 @@ function cacheElements() {
     detailPanel: document.getElementById('detail-panel'),
     detailContent: document.getElementById('detail-content'),
     sideMenu: document.getElementById('side-menu'),
+    
+    // Modals & Forms
+    btnOpenSOS: document.getElementById('btn-open-sos'),
+    btnOpenCollaborate: document.getElementById('btn-open-collaborate'),
+    modalSOS: document.getElementById('modal-sos'),
+    modalCollaborate: document.getElementById('modal-collaborate'),
+    formSOS: document.getElementById('form-sos'),
+    formCollaborate: document.getElementById('form-collaborate'),
+    sosCoordsInput: document.getElementById('sos-coords'),
+    btnGetLoc: document.getElementById('btn-get-loc'),
+    closeModalButtons: document.querySelectorAll('.btn-close-modal'),
+    
     panelOverlay: document.getElementById('panel-overlay'),
     filterButtons: document.querySelectorAll('.filter-btn'),
     counterValue: document.getElementById('counter-value'),
@@ -382,6 +395,179 @@ function setupControls() {
       }
     }, { passive: true });
   });
+
+  // Configuración de modales de formularios
+  setupModals();
+}
+
+/**
+ * Lógica para modales de reporte y colaboración
+ */
+function setupModals() {
+  const { 
+    btnOpenSOS, btnOpenCollaborate, 
+    modalSOS, modalCollaborate, 
+    closeModalButtons, 
+    formSOS, formCollaborate,
+    sosCoordsInput, btnGetLoc
+  } = elements;
+
+  // Abrir SOS
+  btnOpenSOS?.addEventListener('click', () => {
+    closeSideMenu();
+    closeAllPanels();
+    modalSOS?.classList.remove('hidden');
+    
+    // Intentar obtener ubicación automáticamente si es seguro
+    if (navigator.geolocation && sosCoordsInput && !sosCoordsInput.value) {
+       getSOSLocation();
+    }
+  });
+
+  // Abrir Colaborar
+  btnOpenCollaborate?.addEventListener('click', () => {
+    closeSideMenu();
+    closeAllPanels();
+    modalCollaborate?.classList.remove('hidden');
+  });
+
+  // Cerrar modales
+  closeModalButtons?.forEach(btn => {
+    btn.addEventListener('click', closeAllModals);
+  });
+  
+  // Cerrar al clickear fuera (overlays o fondos)
+  [modalSOS, modalCollaborate].forEach(modal => {
+    modal?.addEventListener('click', (e) => {
+      if (e.target === modal || e.target.id.includes('-bg')) {
+        closeAllModals();
+      }
+    });
+  });
+
+  // Botón "Aquí" en SOS
+  btnGetLoc?.addEventListener('click', getSOSLocation);
+
+  // Submit SOS
+  formSOS?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = formSOS.querySelector('button[type="submit"]');
+    const originalText = btn.innerText;
+    
+    // Validar coords
+    if (!sosCoordsInput.value) {
+      alert('Por favor indica la ubicación (usa el botón "Aquí")');
+      return;
+    }
+
+    try {
+      btn.disabled = true;
+      btn.innerText = 'Enviando...';
+      
+      const formData = new FormData(formSOS);
+      const [lat, lng] = sosCoordsInput.value.split(',').map(n => parseFloat(n.trim()));
+      
+      const data = {
+        lat, lng,
+        type: formData.get('type'),
+        descripcion: formData.get('descripcion'),
+        contacto: formData.get('contacto'),
+        nombre: 'SOS Ciudadano'
+      };
+
+      console.log('Submitting SOS using repo:', repository);
+      if (typeof repository.submitSOS !== 'function') {
+        alert('CRITICAL ERROR: submitSOS not found on repository. Try clearing cache.');
+        console.error('Repository prototype:', Object.getPrototypeOf(repository));
+      }
+
+      const result = await repository.submitSOS(data);
+      
+      if (result.success) {
+        alert('¡Alerta enviada! Aparecerá en el mapa en breve.');
+        closeAllModals();
+        formSOS.reset();
+        
+        // Recargar mapa
+        // Nota: mapManager debe exponer un método reload o addPoints limpio
+        // Como addPoints agrega, primero podríamos limpiar, pero repository.refresh() trae todo de nuevo.
+        // mapManager.loadPoints() llama a repository.initialize().
+        // Forzamos un reload completo por simplicidad:
+        window.location.reload(); 
+        
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      alert('Error al enviar: ' + error.message);
+    } finally {
+      btn.disabled = false;
+      btn.innerText = originalText;
+    }
+  });
+
+  // Submit Colaborar
+  formCollaborate?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = formCollaborate.querySelector('button[type="submit"]');
+    const originalText = btn.innerText;
+    
+    try {
+      btn.disabled = true;
+      btn.innerText = 'Enviando...';
+      
+      const formData = new FormData(formCollaborate);
+      const data = {
+        nombre: formData.get('origen'),
+        contacto: formData.get('contacto'),
+        mensaje: formData.get('datos')
+      };
+
+      const result = await repository.submitExternalRequest(data, 'web-collaborate');
+      
+      if (result.success) {
+        alert('¡Gracias! Tus datos han sido recibidos y serán verificados.');
+        closeAllModals();
+        formCollaborate.reset();
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      alert('Error al enviar: ' + error.message);
+    } finally {
+      btn.disabled = false;
+      btn.innerText = originalText;
+    }
+  });
+}
+
+function closeAllModals() {
+  elements.modalSOS?.classList.add('hidden');
+  elements.modalCollaborate?.classList.add('hidden');
+}
+
+function getSOSLocation() {
+  const btn = elements.btnGetLoc;
+  if(!btn) return;
+  
+  btn.disabled = true;
+  btn.innerText = '📍 Buscando...';
+  
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      elements.sosCoordsInput.value = `${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`;
+      btn.innerText = '✅ Listo';
+      // Restaurar después de un momento
+      setTimeout(() => { btn.innerText = '📍 Aquí'; btn.disabled = false; }, 2000);
+    },
+    (err) => {
+      console.error(err);
+      alert('No pudimos obtener tu ubicación. Por favor escríbela o activa el GPS.');
+      btn.innerText = '❌ Error';
+      btn.disabled = false;
+    },
+    { enableHighAccuracy: true, timeout: 5000 }
+  );
 }
 
 // Arrancar la app cuando el DOM esté listo

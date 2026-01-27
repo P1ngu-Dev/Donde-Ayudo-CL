@@ -14,6 +14,11 @@ export const TYPE_ALIASES = {
   'centro acopio': 'acopio',
   'acopio de donaciones': 'acopio',
   
+  // SOS
+  'emergencia': 'sos',
+  'solicitud': 'sos',
+  'ayuda urgente': 'sos',
+  
   // Albergue
   'centro de albergue': 'albergue',
   'refugio temporal': 'albergue',
@@ -48,6 +53,7 @@ export function normalizeType(type) {
 
 // Configuración de colores por tipo de punto
 export const MARKER_COLORS = {
+  sos: '#EAB308',         // Amarillo (Warning)
   albergue: '#3B82F6',    // Azul
   acopio: '#10B981',      // Verde
   hidratacion: '#06B6D4', // Cyan
@@ -131,6 +137,7 @@ const ICONS_SVG = {
 
 // Labels de tipos
 export const TYPE_LABELS = {
+  sos: 'Solicitud de Ayuda',
   albergue: 'Albergue',
   acopio: 'Centro de Acopio',
   hidratacion: 'Punto de Hidratación',
@@ -208,6 +215,14 @@ export function createDetailContent(point) {
   const typeLabel = getTypeLabel(point.type);
   const color = getColorForType(point.type);
 
+  // Badge de no verificado
+  const verificationBadge = !point.verified 
+    ? `<div class="bg-yellow-50 text-yellow-800 px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 mb-3 border border-yellow-200 mx-1 mt-2">
+         <svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+         Reporte comunitario no verificado
+       </div>`
+    : '';
+
   // Formatear contacto como link si es teléfono
   let contactHtml = '';
   if (point.contact && point.contact !== 'No disponible') {
@@ -268,6 +283,8 @@ export function createDetailContent(point) {
       </div>
     </div>
     
+    ${verificationBadge}
+
     <div class="status-badge ${status.class}">
       ${status.icon}
       <span>${status.text}</span>

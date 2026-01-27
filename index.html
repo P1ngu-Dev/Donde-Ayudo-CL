@@ -205,12 +205,10 @@
                       <p class="text-xs text-orange-800 mt-1">Rápida y sencilla (pendiente de verificación)</p>
                     </div>
                   </div>
-                  <a href="https://forms.gle/solicitud-rapida" 
-                     target="_blank"
-                     rel="noopener noreferrer"
+                  <button id="btn-open-sos" 
                      class="block w-full bg-orange-600 hover:bg-orange-700 text-white text-center font-bold py-2.5 px-4 rounded-lg transition-colors active:scale-95 transform text-sm">
                     Reportar necesidad urgente
-                  </a>
+                  </button>
                   <p class="text-xs text-orange-700 mt-2">
                     Para casos urgentes. Se revisa y publica en menos de 2 horas.
                   </p>
@@ -227,12 +225,10 @@
                       <p class="text-xs text-green-800 mt-1">Para organizaciones y voluntarios con múltiples puntos</p>
                     </div>
                   </div>
-                  <a href="https://forms.gle/datos-verificados-lote" 
-                     target="_blank"
-                     rel="noopener noreferrer"
+                  <button id="btn-open-collaborate" 
                      class="block w-full bg-green-600 hover:bg-green-700 text-white text-center font-bold py-2.5 px-4 rounded-lg transition-colors active:scale-95 transform text-sm">
                     Enviar datos en lote
-                  </a>
+                  </button>
                   <p class="text-xs text-green-700 mt-2">
                     Ideal si tienes 5+ puntos verificados. Revisamos antes de publicar.
                   </p>
@@ -298,6 +294,105 @@
               <span class="text-gray-400">v1.0.0</span>
             </p>
           </div>
+        </div>
+      </div>
+
+      <!-- Modal SOS -->
+      <div id="modal-sos" class="hidden fixed inset-0 z-[2000] flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" id="modal-sos-bg"></div>
+        <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-slide-up">
+          <div class="bg-orange-600 p-4 text-white flex justify-between items-center sticky top-0 z-10">
+            <h3 class="text-lg font-bold flex items-center gap-2">
+              <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              Reportar SOS
+            </h3>
+            <button class="btn-close-modal hover:bg-orange-700 p-1 rounded transition-colors">
+              <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          
+          <form id="form-sos" class="p-4 space-y-4">
+            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-3 text-sm text-yellow-800">
+              Este reporte será <strong>público inmediatamente</strong> como "Sin Verificar". Úsalo con responsabilidad.
+            </div>
+
+            <div class="space-y-1">
+              <label class="block text-sm font-medium text-gray-700">Ubicación</label>
+              <div class="flex gap-2">
+                <input type="text" id="sos-coords" class="flex-1 bg-white border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Coordenadas (Lat, Lng)">
+                <button type="button" id="btn-get-loc" class="bg-blue-100 text-blue-700 px-3 py-2 rounded text-sm font-medium hover:bg-blue-200">
+                  📍 Aquí
+                </button>
+              </div>
+              <p class="text-xs text-gray-500">Usa "📍 Aquí" o centra el mapa antes de abrir.</p>
+            </div>
+
+            <div class="space-y-1">
+              <label class="block text-sm font-medium text-gray-700">Tipo de urgencia</label>
+              <select name="type" required class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none">
+                <option value="salud">Salud / Herido</option>
+                <option value="atrapado">Persona Atrapada</option>
+                <option value="agua">Falta de agua crítica</option>
+                <option value="comida">Falta de comida crítica</option>
+                <option value="otro">Otra emergencia</option>
+              </select>
+            </div>
+
+            <div class="space-y-1">
+              <label class="block text-sm font-medium text-gray-700">Descripción breve</label>
+              <textarea name="descripcion" required rows="3" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none" placeholder="Ej: Familia aislada en techo, 3 personas..."></textarea>
+            </div>
+
+            <div class="space-y-1">
+              <label class="block text-sm font-medium text-gray-700">Contacto (Opcional)</label>
+              <input type="text" name="contacto" class="w-full border border-gray-300 rounded px-3 py-2 outline-none" placeholder="Teléfono o nombre">
+            </div>
+
+            <button type="submit" class="w-full bg-orange-600 text-white font-bold py-3 rounded-lg shadow-md hover:bg-orange-700 active:scale-95 transition-all">
+              ENVIAR ALERTA SOS
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Modal Colaborar -->
+      <div id="modal-collaborate" class="hidden fixed inset-0 z-[2000] flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" id="modal-collab-bg"></div>
+        <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-slide-up">
+          <div class="bg-green-600 p-4 text-white flex justify-between items-center sticky top-0 z-10">
+            <h3 class="text-lg font-bold flex items-center gap-2">
+              <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              Enviar Datos en Lote
+            </h3>
+            <button class="btn-close-modal hover:bg-green-700 p-1 rounded transition-colors">
+              <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          
+          <form id="form-collaborate" class="p-4 space-y-4">
+            <p class="text-sm text-gray-600">
+              Si tienes una lista de albergues o centros de acopio verificados, envíala aquí. Será revisada antes de publicarse.
+            </p>
+
+            <div class="space-y-1">
+              <label class="block text-sm font-medium text-gray-700">Organización / Persona</label>
+              <input type="text" name="origen" required class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-green-500 outline-none">
+            </div>
+
+            <div class="space-y-1">
+              <label class="block text-sm font-medium text-gray-700">Contacto</label>
+              <input type="text" name="contacto" required class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-green-500 outline-none">
+            </div>
+
+            <div class="space-y-1">
+              <label class="block text-sm font-medium text-gray-700">Datos (Link o Texto)</label>
+              <textarea name="datos" required rows="5" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-green-500 outline-none" placeholder="Pega aquí el enlace a tu Google Sheet, CSV, o describe los puntos..."></textarea>
+            </div>
+
+            <button type="submit" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg shadow-md hover:bg-green-700 active:scale-95 transition-all">
+              ENVIAR DATOS
+            </button>
+          </form>
         </div>
       </div>
 
