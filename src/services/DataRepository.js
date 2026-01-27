@@ -5,9 +5,11 @@ import PocketBase from 'pocketbase';
 
 const STORAGE_KEY = 'donde-ayudo-data';
 
-// URL de PocketBase - cambiar en producción
-// Usamos ruta relativa para aprovechar el proxy de Vite en desarrollo y la misma ruta en prod
-const POCKETBASE_URL = import.meta.env.VITE_POCKETBASE_URL || '/';
+// URL de PocketBase
+// En desarrollo: conecta directamente a PocketBase (puerto 8090)
+// En producción: usa variable de entorno o ruta relativa
+const POCKETBASE_URL = import.meta.env.VITE_POCKETBASE_URL || 
+  (import.meta.env.DEV ? 'http://127.0.0.1:8090' : '/');
 
 // Instancia global de PocketBase
 export const pb = new PocketBase(POCKETBASE_URL);

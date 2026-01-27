@@ -149,6 +149,10 @@ export default defineConfig({
       }
     },
     rollupOptions: {
+      input: {
+        main: './index.html',
+        admin: './admin.html'
+      },
       output: {
         manualChunks: {
           'leaflet': ['leaflet']

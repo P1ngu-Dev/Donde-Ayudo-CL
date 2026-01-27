@@ -53,8 +53,15 @@ Thumbs.db
 sw.js
 workbox-*.js
 
-# PocketBase
+# Backend (deprecated PocketBase files)
+backend/_deprecated/
 backend/pocketbase
-backend/pb_data/
+backend/pb_data/*.db-shm
+backend/pb_data/*.db-wal
+backend/pb_data/logs/
+
+# Go backend
+backend/server/donde-ayudo-server
+backend/server/*.exe
 
 .venv

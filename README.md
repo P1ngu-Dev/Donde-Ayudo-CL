@@ -43,7 +43,7 @@ npm run preview
 - **Estilos:** Tailwind CSS v4
 - **Mapas:** Leaflet.js (~40KB)
 - **PWA:** vite-plugin-pwa + Workbox
-- **Backend (futuro):** PocketBase
+- **Backend:** Go + SQLite (API REST)
 
 ## Estructura del Proyecto
 

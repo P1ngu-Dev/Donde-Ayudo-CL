@@ -1,0 +1,308 @@
+/**
+ * Estilos personalizados para PocketBase Admin UI
+ * Donde Ayudo CL - Tema Personalizado
+ * 
+ * Instrucciones de instalación:
+ * 1. En PocketBase Admin UI, ir a Settings > Application
+ * 2. En "Custom CSS", copiar y pegar este contenido
+ * 
+ * O alternativamente, crear el archivo en:
+ * backend/pb_public/admin_custom.css
+ * Y referenciarlo en la configuración
+ */
+
+/* =============================================
+   VARIABLES Y COLORES PRINCIPALES
+   ============================================= */
+
+:root {
+  /* Colores de marca Donde Ayudo */
+  --primary-color: #1E40AF !important;
+  --primary-color-dark: #1E3A8A !important;
+  --primary-color-light: #3B82F6 !important;
+  
+  /* Colores secundarios */
+  --success-color: #059669 !important;
+  --warning-color: #D97706 !important;
+  --danger-color: #DC2626 !important;
+  
+  /* Neutrales */
+  --base-background: #F9FAFB !important;
+}
+
+/* =============================================
+   SIDEBAR / NAVEGACIÓN
+   ============================================= */
+
+/* Header del sidebar */
+.sidebar .sidebar-header {
+  background: linear-gradient(135deg, #1E40AF 0%, #1E3A8A 100%) !important;
+}
+
+.sidebar .sidebar-header-title {
+  font-weight: 700 !important;
+}
+
+/* Items de navegación activos */
+.sidebar .sidebar-item.active,
+.sidebar .sidebar-item:hover {
+  background-color: rgba(30, 64, 175, 0.1) !important;
+}
+
+.sidebar .sidebar-item.active .txt {
+  color: #1E40AF !important;
+  font-weight: 600 !important;
+}
+
+/* Iconos del sidebar */
+.sidebar .sidebar-item.active i {
+  color: #1E40AF !important;
+}
+
+/* =============================================
+   BOTONES
+   ============================================= */
+
+/* Botón primario */
+.btn-primary,
+button[type="submit"].btn {
+  background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%) !important;
+  border: none !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn-primary:hover,
+button[type="submit"].btn:hover {
+  background: linear-gradient(135deg, #1E3A8A 0%, #1E40AF 100%) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3) !important;
+}
+
+/* Botón de crear nuevo */
+.btn-create,
+.btn[data-action="create"] {
+  background: #059669 !important;
+}
+
+.btn-create:hover,
+.btn[data-action="create"]:hover {
+  background: #047857 !important;
+}
+
+/* Botón de eliminar */
+.btn-danger {
+  background: #DC2626 !important;
+}
+
+.btn-danger:hover {
+  background: #B91C1C !important;
+}
+
+/* =============================================
+   TABLAS Y LISTAS
+   ============================================= */
+
+/* Header de tabla */
+.tbl-header {
+  background: #F3F4F6 !important;
+}
+
+/* Filas con hover */
+.tbl-row:hover {
+  background: rgba(30, 64, 175, 0.05) !important;
+}
+
+/* Badges de estado */
+.label.label-success {
+  background: #D1FAE5 !important;
+  color: #047857 !important;
+}
+
+.label.label-warning {
+  background: #FEF3C7 !important;
+  color: #B45309 !important;
+}
+
+.label.label-danger {
+  background: #FEE2E2 !important;
+  color: #B91C1C !important;
+}
+
+/* =============================================
+   FORMULARIOS
+   ============================================= */
+
+/* Inputs */
+.form-field input,
+.form-field select,
+.form-field textarea {
+  border: 2px solid #E5E7EB !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
+}
+
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus {
+  border-color: #3B82F6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+  outline: none !important;
+}
+
+/* Labels */
+.form-field label {
+  font-weight: 600 !important;
+  color: #374151 !important;
+  margin-bottom: 6px !important;
+}
+
+/* =============================================
+   CARDS Y PANELES
+   ============================================= */
+
+.card,
+.panel {
+  border-radius: 12px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  border: 1px solid #E5E7EB !important;
+}
+
+.card-header {
+  background: #F9FAFB !important;
+  border-bottom: 1px solid #E5E7EB !important;
+  font-weight: 600 !important;
+}
+
+/* =============================================
+   MODAL
+   ============================================= */
+
+.modal .modal-content {
+  border-radius: 12px !important;
+  overflow: hidden !important;
+}
+
+.modal .modal-header {
+  background: linear-gradient(135deg, #1E40AF 0%, #1E3A8A 100%) !important;
+  color: white !important;
+}
+
+.modal .modal-header .txt {
+  color: white !important;
+}
+
+/* =============================================
+   COLECCIÓN "PUNTOS" - ESTILOS ESPECIALES
+   ============================================= */
+
+/* Destacar la colección puntos */
+.sidebar-item[data-collection="puntos"] .txt::after {
+  content: " 📍";
+}
+
+.sidebar-item[data-collection="solicitudes_externas"] .txt::after {
+  content: " 📥";
+}
+
+.sidebar-item[data-collection="users"] .txt::after {
+  content: " 👥";
+}
+
+/* =============================================
+   BADGES PERSONALIZADOS POR ESTADO
+   ============================================= */
+
+/* Estado: publicado */
+[data-field="estado"] .select-selected:has(option[value="publicado"]:checked),
+.form-field[data-field="estado"] select option[value="publicado"] {
+  background-color: #D1FAE5;
+  color: #047857;
+}
+
+/* Estado: revision */
+[data-field="estado"] .select-selected:has(option[value="revision"]:checked) {
+  background-color: #FEF3C7;
+  color: #B45309;
+}
+
+/* =============================================
+   HEADER PERSONALIZADO
+   ============================================= */
+
+/* Añadir branding al header */
+.app-header::before {
+  content: "🗺️ Donde Ayudo CL";
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6B7280;
+  padding-left: 1rem;
+}
+
+/* =============================================
+   TOAST / NOTIFICACIONES
+   ============================================= */
+
+.toast.toast-success {
+  background: #059669 !important;
+}
+
+.toast.toast-error {
+  background: #DC2626 !important;
+}
+
+.toast.toast-warning {
+  background: #D97706 !important;
+}
+
+/* =============================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================= */
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100% !important;
+  }
+  
+  .main-content {
+    margin-left: 0 !important;
+  }
+}
+
+/* =============================================
+   ANIMACIONES
+   ============================================= */
+
+/* Animación suave para transiciones */
+.btn,
+.card,
+.form-field input,
+.sidebar-item {
+  transition: all 0.2s ease !important;
+}
+
+/* Hover suave en cards */
+.card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* =============================================
+   DARK MODE OVERRIDE (si está habilitado)
+   ============================================= */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary-color: #3B82F6 !important;
+  }
+}
+
+/* =============================================
+   CUSTOM FOOTER
+   ============================================= */
+
+/* Añadir texto al footer */
+.app-footer::after {
+  content: " | Donde Ayudo CL - Panel de Administración";
+  color: #9CA3AF;
+  font-size: 0.75rem;
+}
