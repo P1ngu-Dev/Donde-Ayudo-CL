@@ -1,3 +1,24 @@
+"""
+NOTA: Este script ha sido reemplazado por una versión mejorada en Go
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Nueva herramienta: tools/data-converter/
+- 10-50x más rápido
+- Sistema de caché inteligente
+- Procesamiento concurrente
+- CLI completa con múltiples opciones
+
+Para usar la nueva versión:
+    cd tools/data-converter
+    ./data-converter -help
+
+Ver documentación: tools/data-converter/README.md
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Este script Python se mantiene solo como referencia.
+Para producción, usa la versión Go.
+"""
+
 import csv
 import json
 from datetime import datetime

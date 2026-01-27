@@ -1,0 +1,25 @@
+# Ignorar binarios
+data-converter
+data-converter-*
+*.exe
+
+# Ignorar directorios de build
+build/
+dist/
+
+# Ignorar archivos de caché
+geocache.json
+*.cache
+
+# Ignorar archivos de datos (opcional, comentar si quieres versionar)
+# *.csv
+# *.json
+
+# Ignorar archivos de Go
+*.out
+*.test
+*.prof
+
+# Ignorar archivos del sistema
+.DS_Store
+Thumbs.db
