@@ -106,6 +106,26 @@ Esto genera:
 2. Toca el botón Compartir
 3. "Añadir a pantalla de inicio"
 
+## Herramientas de Desarrollo 
+
+### Conversor de Datos (Go)
+
+Herramienta de alta performance para convertir CSV a JSON con geocodificación:
+
+```bash
+cd tools/data-converter
+make build
+./data-converter -input ../../src/data/data1.csv -output ../../src/data/data1.json -verbose
+```
+
+**Características:**
+- 10-50x más rápido que Python
+- Geocodificación automática (OpenStreetMap)
+- Sistema de caché inteligente
+- Procesamiento concurrente
+
+Ver documentación completa: [tools/data-converter/README.md](./tools/data-converter/README.md)
+
 ## Uso
 
 1. **Ver Mapa:** Al cargar, se muestran todos los puntos disponibles

@@ -52,3 +52,6 @@ Thumbs.db
 # PWA
 sw.js
 workbox-*.js
+backend/
+
+.venv
