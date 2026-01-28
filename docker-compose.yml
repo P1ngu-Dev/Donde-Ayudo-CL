@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # Backend Go
+  backend:
+    build:
+      context: ./backend/server
+      dockerfile: Dockerfile.dev
+    container_name: donde-ayudo-backend
+    ports:
+      - "8091:8091"
+    environment:
+      - PORT=8091
+      - JWT_SECRET=dev-secret-key-change-in-production
+      - DB_PATH=/app/data/data.db
+      - ENVIRONMENT=development
+    volumes:
+      - ./backend/pb_data:/app/data
+      - ./backend/server:/app/src
+    restart: unless-stopped
+    networks:
+      - donde-ayudo-network
+
+  # Frontend Vite (desarrollo)
+  frontend:
+    image: node:20-alpine
+    container_name: donde-ayudo-frontend
+    working_dir: /app
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://backend:8091
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: sh -c "npm install && npm run dev -- --host"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - donde-ayudo-network
+
+networks:
+  donde-ayudo-network:
+    driver: bridge
+
+volumes:
+  db-data:

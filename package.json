@@ -9,7 +9,14 @@
     "build": "vite build",
     "preview": "vite preview",
     "generate-icons": "node generate-icons.js",
-    "analyze": "vite build --mode analyze"
+    "analyze": "vite build --mode analyze",
+    "backend:dev": "cd backend/server && go run .",
+    "backend:build": "cd backend/server && go build -o donde-ayudo-server",
+    "backend:start": "cd backend/server && ./donde-ayudo-server",
+    "deploy:build": "npm run build && npm run backend:build",
+    "docker:build": "docker build -t donde-ayudo-cl .",
+    "docker:run": "docker run -p 80:80 -e JWT_SECRET=dev-secret donde-ayudo-cl",
+    "docker:dev": "docker-compose up"
   },
   "repository": {
     "type": "git",

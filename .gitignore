@@ -60,8 +60,18 @@ backend/pb_data/*.db-shm
 backend/pb_data/*.db-wal
 backend/pb_data/logs/
 
+# Database (SQLite)
+backend/pb_data/*.db
+backend/pb_data/data.db
+*.db
+
 # Go backend
 backend/server/donde-ayudo-server
 backend/server/*.exe
+backend/server/server.log
+backend/server/*.log
+
+# Test files
+test-*.html
 
 .venv

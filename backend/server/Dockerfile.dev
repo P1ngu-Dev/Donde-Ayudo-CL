@@ -1,0 +1,20 @@
+# Dockerfile para desarrollo del backend Go
+FROM golang:1.23-alpine
+
+WORKDIR /app/src
+
+# Instalar dependencias para SQLite
+RUN apk add --no-cache gcc musl-dev sqlite-dev
+
+# Copiar módulos
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Instalar air para hot reload
+RUN go install github.com/cosmtrek/air@latest
+
+# Exponer puerto
+EXPOSE 8091
+
+# Usar air para hot reload
+CMD ["air", "-c", ".air.toml"]
