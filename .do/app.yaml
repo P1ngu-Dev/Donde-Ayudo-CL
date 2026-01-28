@@ -1,0 +1,101 @@
+name: donde-ayudo-cl
+region: nyc # O sfo (más cercano a Chile)
+
+# Backend Go
+services:
+  - name: backend
+    source_dir: backend/server
+    github:
+      repo: P1ngu-Dev/Donde-Ayudo-CL
+      branch: main
+      deploy_on_push: true
+    
+    # DigitalOcean detecta Go automáticamente
+    build_command: go build -o donde-ayudo-server
+    run_command: ./donde-ayudo-server
+    
+    # Variables de entorno
+    envs:
+      - key: PORT
+        value: "8091"
+      - key: ENVIRONMENT
+        value: production
+      - key: JWT_SECRET
+        type: SECRET
+        # Configurar en dashboard: Settings > App-Level Environment Variables
+      - key: DB_PATH
+        value: /app/data/data.db
+    
+    # Recursos
+    instance_count: 1
+    instance_size_slug: basic-xxs # $5/mes
+    
+    # HTTP
+    http_port: 8091
+    
+    # Health check
+    health_check:
+      http_path: /
+      initial_delay_seconds: 10
+    
+    # Persistencia para SQLite
+    # IMPORTANTE: App Platform es stateless por defecto
+    # Opciones:
+    # 1. Usar un volumen (recomendado para SQLite)
+    # 2. Migrar a Managed PostgreSQL de DO
+    # Descomentar si quieres usar volumen:
+    # volumes:
+    #   - name: db-volume
+    #     mount_path: /app/data
+    #     size_gb: 1
+
+# Frontend estático
+static_sites:
+  - name: frontend
+    source_dir: /
+    github:
+      repo: P1ngu-Dev/Donde-Ayudo-CL
+      branch: main
+      deploy_on_push: true
+    
+    build_command: npm install && npm run build
+    output_dir: dist
+    
+    # Variables de entorno para build
+    envs:
+      - key: VITE_API_URL
+        value: ${backend.PUBLIC_URL}
+        # App Platform inyecta automáticamente la URL del backend
+    
+    # Rutas (SPA)
+    routes:
+      - path: /
+    
+    # Error pages
+    error_document: index.html
+    
+    # Cache headers
+    catchall_document: index.html
+
+# Alternativa: TODO EN UNO con Dockerfile
+# Si prefieres usar el Dockerfile que creamos:
+# 
+# services:
+#   - name: app
+#     dockerfile_path: Dockerfile
+#     github:
+#       repo: P1ngu-Dev/Donde-Ayudo-CL
+#       branch: main
+#       deploy_on_push: true
+#     
+#     envs:
+#       - key: JWT_SECRET
+#         type: SECRET
+#       - key: PORT
+#         value: "8091"
+#       - key: ENVIRONMENT
+#         value: production
+#     
+#     http_port: 80
+#     instance_size_slug: basic-xxs
+#     instance_count: 1
