@@ -16,14 +16,9 @@ services:
         value: "8080"
       - key: ENVIRONMENT
         value: production
-      - key: JWT_SECRET
-        type: SECRET
-        # Configurar en dashboard: Settings > Environment Variables
-      - key: DATABASE_URL
-        type: SECRET
-        # Supabase PostgreSQL: postgresql://postgres:[password]@[host]:5432/postgres
       - key: STATIC_DIR
         value: /app/public
+      # JWT_SECRET y DATABASE_URL se configuran en: Settings > Environment Variables
     
     # Recursos
     instance_count: 1
