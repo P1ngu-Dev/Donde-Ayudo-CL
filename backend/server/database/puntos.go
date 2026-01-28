@@ -27,43 +27,53 @@ func GetPuntos(categoria, subtipo, ciudad, estado string, page, limit int) (*mod
 		WHERE 1=1
 	`
 	args := []interface{}{}
+	placeholder := 1
 
 	if estado != "" {
-		query += " AND estado = ?"
+		query += fmt.Sprintf(" AND estado = $%d", placeholder)
 		args = append(args, estado)
+		placeholder++
 	}
 	if categoria != "" {
-		query += " AND categoria = ?"
+		query += fmt.Sprintf(" AND categoria = $%d", placeholder)
 		args = append(args, categoria)
+		placeholder++
 	}
 	if subtipo != "" {
-		query += " AND subtipo = ?"
+		query += fmt.Sprintf(" AND subtipo = $%d", placeholder)
 		args = append(args, subtipo)
+		placeholder++
 	}
 	if ciudad != "" {
-		query += " AND ciudad = ?"
+		query += fmt.Sprintf(" AND ciudad = $%d", placeholder)
 		args = append(args, ciudad)
+		placeholder++
 	}
 
 	// Contar total con los mismos filtros
 	countQuery := "SELECT COUNT(*) FROM puntos WHERE 1=1"
 	countArgs := []interface{}{}
+	countPlaceholder := 1
 
 	if estado != "" {
-		countQuery += " AND estado = ?"
+		countQuery += fmt.Sprintf(" AND estado = $%d", countPlaceholder)
 		countArgs = append(countArgs, estado)
+		countPlaceholder++
 	}
 	if categoria != "" {
-		countQuery += " AND categoria = ?"
+		countQuery += fmt.Sprintf(" AND categoria = $%d", countPlaceholder)
 		countArgs = append(countArgs, categoria)
+		countPlaceholder++
 	}
 	if subtipo != "" {
-		countQuery += " AND subtipo = ?"
+		countQuery += fmt.Sprintf(" AND subtipo = $%d", countPlaceholder)
 		countArgs = append(countArgs, subtipo)
+		countPlaceholder++
 	}
 	if ciudad != "" {
-		countQuery += " AND ciudad = ?"
+		countQuery += fmt.Sprintf(" AND ciudad = $%d", countPlaceholder)
 		countArgs = append(countArgs, ciudad)
+		countPlaceholder++
 	}
 
 	var total int
@@ -73,7 +83,7 @@ func GetPuntos(categoria, subtipo, ciudad, estado string, page, limit int) (*mod
 	}
 
 	offset := (page - 1) * limit
-	query += " ORDER BY created DESC LIMIT ? OFFSET ?"
+	query += fmt.Sprintf(" ORDER BY created DESC LIMIT $%d OFFSET $%d", placeholder, placeholder+1)
 	args = append(args, limit, offset)
 
 	rows, err := DB.Query(query, args...)
@@ -109,7 +119,7 @@ func GetPuntoByID(id string) (*models.Punto, error) {
 		       riesgo_asbesto, logistica_llegada, requiere_voluntarios, urgencia,
 		       evidencia_fotos, created, updated
 		FROM puntos
-		WHERE id = ?
+		WHERE id = $1
 		LIMIT 1
 	`
 
@@ -140,8 +150,8 @@ func CreatePunto(req models.PuntoCreateRequest, verificadoPor string) (*models.P
 			cantidad_adultos, cantidad_ancianos, animales_detalle, riesgo_asbesto,
 			logistica_llegada, requiere_voluntarios, urgencia, created, updated
 		) VALUES (
-			?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), ?, ?, ?, ?, ?,
-			?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now')
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), $14, $15, $16, $17, $18,
+			$19, $20, $21, $22, $23, $24, $25, $26, NOW(), NOW()
 		)
 	`
 
@@ -166,79 +176,96 @@ func CreatePunto(req models.PuntoCreateRequest, verificadoPor string) (*models.P
 func UpdatePunto(id string, req models.PuntoUpdateRequest) (*models.Punto, error) {
 	updates := []string{}
 	args := []interface{}{}
+	placeholder := 1
 
 	if req.Nombre != nil {
-		updates = append(updates, "nombre = ?")
+		updates = append(updates, fmt.Sprintf("nombre = $%d", placeholder))
 		args = append(args, *req.Nombre)
+		placeholder++
 	}
 	if req.Latitud != nil {
-		updates = append(updates, "latitud = ?")
+		updates = append(updates, fmt.Sprintf("latitud = $%d", placeholder))
 		args = append(args, *req.Latitud)
+		placeholder++
 	}
 	if req.Longitud != nil {
-		updates = append(updates, "longitud = ?")
+		updates = append(updates, fmt.Sprintf("longitud = $%d", placeholder))
 		args = append(args, *req.Longitud)
+		placeholder++
 	}
 	if req.Direccion != nil {
-		updates = append(updates, "direccion = ?")
+		updates = append(updates, fmt.Sprintf("direccion = $%d", placeholder))
 		args = append(args, *req.Direccion)
+		placeholder++
 	}
 	if req.Ciudad != nil {
-		updates = append(updates, "ciudad = ?")
+		updates = append(updates, fmt.Sprintf("ciudad = $%d", placeholder))
 		args = append(args, *req.Ciudad)
+		placeholder++
 	}
 	if req.Categoria != nil {
-		updates = append(updates, "categoria = ?")
+		updates = append(updates, fmt.Sprintf("categoria = $%d", placeholder))
 		args = append(args, *req.Categoria)
+		placeholder++
 	}
 	if req.Subtipo != nil {
-		updates = append(updates, "subtipo = ?")
+		updates = append(updates, fmt.Sprintf("subtipo = $%d", placeholder))
 		args = append(args, *req.Subtipo)
+		placeholder++
 	}
 	if req.ContactoPrincipal != nil {
-		updates = append(updates, "contacto_principal = ?")
+		updates = append(updates, fmt.Sprintf("contacto_principal = $%d", placeholder))
 		args = append(args, *req.ContactoPrincipal)
+		placeholder++
 	}
 	if req.ContactoNombre != nil {
-		updates = append(updates, "contacto_nombre = ?")
+		updates = append(updates, fmt.Sprintf("contacto_nombre = $%d", placeholder))
 		args = append(args, *req.ContactoNombre)
+		placeholder++
 	}
 	if req.Horario != nil {
-		updates = append(updates, "horario = ?")
+		updates = append(updates, fmt.Sprintf("horario = $%d", placeholder))
 		args = append(args, *req.Horario)
+		placeholder++
 	}
 	if req.Estado != nil {
-		updates = append(updates, "estado = ?")
+		updates = append(updates, fmt.Sprintf("estado = $%d", placeholder))
 		args = append(args, *req.Estado)
+		placeholder++
 	}
 	if req.EntidadVerificadora != nil {
-		updates = append(updates, "entidad_verificadora = ?")
+		updates = append(updates, fmt.Sprintf("entidad_verificadora = $%d", placeholder))
 		args = append(args, *req.EntidadVerificadora)
+		placeholder++
 	}
 	if req.NotasInternas != nil {
-		updates = append(updates, "notas_internas = ?")
+		updates = append(updates, fmt.Sprintf("notas_internas = $%d", placeholder))
 		args = append(args, *req.NotasInternas)
+		placeholder++
 	}
 	if req.CapacidadEstado != nil {
-		updates = append(updates, "capacidad_estado = ?")
+		updates = append(updates, fmt.Sprintf("capacidad_estado = $%d", placeholder))
 		args = append(args, *req.CapacidadEstado)
+		placeholder++
 	}
 	if req.NecesidadesRaw != nil {
-		updates = append(updates, "necesidades_raw = ?")
+		updates = append(updates, fmt.Sprintf("necesidades_raw = $%d", placeholder))
 		args = append(args, *req.NecesidadesRaw)
+		placeholder++
 	}
 	if req.NecesidadesTags != nil {
 		necesidadesJSON, _ := json.Marshal(*req.NecesidadesTags)
-		updates = append(updates, "necesidades_tags = ?")
+		updates = append(updates, fmt.Sprintf("necesidades_tags = $%d", placeholder))
 		args = append(args, string(necesidadesJSON))
+		placeholder++
 	}
 
 	if len(updates) == 0 {
 		return GetPuntoByID(id)
 	}
 
-	updates = append(updates, "updated = datetime('now')")
-	query := "UPDATE puntos SET " + strings.Join(updates, ", ") + " WHERE id = ?"
+	updates = append(updates, "updated = NOW()")
+	query := fmt.Sprintf("UPDATE puntos SET %s WHERE id = $%d", strings.Join(updates, ", "), placeholder)
 	args = append(args, id)
 
 	_, err := DB.Exec(query, args...)
@@ -252,10 +279,10 @@ func UpdatePunto(id string, req models.PuntoUpdateRequest) (*models.Punto, error
 func UpdatePuntoEstado(id, estado, verificadoPor string) (*models.Punto, error) {
 	query := `
 		UPDATE puntos 
-		SET estado = ?, 
-		    fecha_verificacion = datetime('now'),
-		    updated = datetime('now')
-		WHERE id = ?
+		SET estado = $1, 
+		    fecha_verificacion = NOW(),
+		    updated = NOW()
+		WHERE id = $2
 	`
 
 	_, err := DB.Exec(query, estado, id)
@@ -267,7 +294,7 @@ func UpdatePuntoEstado(id, estado, verificadoPor string) (*models.Punto, error) 
 }
 
 func DeletePunto(id string) error {
-	query := `UPDATE puntos SET estado = 'oculto', updated = datetime('now') WHERE id = ?`
+	query := `UPDATE puntos SET estado = 'oculto', updated = NOW() WHERE id = $1`
 	_, err := DB.Exec(query, id)
 	return err
 }

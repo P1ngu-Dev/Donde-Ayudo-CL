@@ -12,7 +12,7 @@ func GetUserByEmail(email string) (*models.User, error) {
 		SELECT id, email, name, rol, organizacion, avatar, 
 		       emailVisibility, verified, activo, created, updated
 		FROM users 
-		WHERE email = ? AND activo = TRUE
+		WHERE email = $1 AND activo = TRUE
 		LIMIT 1
 	`
 
@@ -38,7 +38,7 @@ func GetUserByID(id string) (*models.User, error) {
 		SELECT id, email, name, rol, organizacion, avatar, 
 		       emailVisibility, verified, activo, created, updated
 		FROM users 
-		WHERE id = ?
+		WHERE id = $1
 		LIMIT 1
 	`
 
@@ -61,7 +61,7 @@ func GetUserByID(id string) (*models.User, error) {
 
 func GetUserPasswordHash(email string) (string, error) {
 	var passwordHash string
-	query := `SELECT password FROM users WHERE email = ? AND activo = TRUE LIMIT 1`
+	query := `SELECT password FROM users WHERE email = $1 AND activo = TRUE LIMIT 1`
 	err := DB.QueryRow(query, email).Scan(&passwordHash)
 
 	if err == sql.ErrNoRows {
@@ -111,7 +111,7 @@ func CreateUser(email, name, passwordHash, rol, organizacion string) (*models.Us
 	query := `
 		INSERT INTO users (id, email, name, password, rol, organizacion, 
 		                   emailVisibility, verified, activo, created, updated, tokenKey)
-		VALUES (?, ?, ?, ?, ?, ?, FALSE, TRUE, TRUE, datetime('now'), datetime('now'), ?)
+		VALUES ($1, $2, $3, $4, $5, $6, FALSE, TRUE, TRUE, NOW(), NOW(), $7)
 	`
 
 	tokenKey := fmt.Sprintf("tk_%d", generateRandomID())
