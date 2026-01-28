@@ -85,7 +85,9 @@ func main() {
 
 		// POST /api/admin/users - Crear usuario (superadmin)
 		r.With(mw.RequireRole("superadmin")).Post("/users", handlers.CreateUser)
-	})==================== FRONTEND ESTÁTICO ====================
+	})
+
+	// ==================== FRONTEND ESTÁTICO ====================
 	// Servir archivos estáticos del frontend
 	staticDir := os.Getenv("STATIC_DIR")
 	if staticDir == "" {
