@@ -3,9 +3,6 @@ FROM golang:1.24-alpine AS backend-builder
 
 WORKDIR /app/backend
 
-# Instalar dependencias para CGO (requerido por SQLite)
-RUN apk add --no-cache gcc musl-dev sqlite-dev
-
 # Copiar módulos Go
 COPY backend/server/go.mod backend/server/go.sum ./
 RUN go mod download
@@ -13,8 +10,8 @@ RUN go mod download
 # Copiar código fuente del backend
 COPY backend/server/ ./
 
-# Compilar el binario
-RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o donde-ayudo-server .
+# Compilar el binario (CGO deshabilitado para PostgreSQL)
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o donde-ayudo-server .
 
 # Etapa 2: Build del frontend
 FROM node:20-alpine AS frontend-builder
@@ -34,8 +31,8 @@ RUN npm run build
 # Etapa 3: Imagen final simplificada (Backend Go sirve frontend)
 FROM golang:1.24-alpine
 
-# Instalar sqlite runtime
-RUN apk add --no-cache sqlite-libs ca-certificates
+# Instalar PostgreSQL client y CA certificates
+RUN apk add --no-cache postgresql-client ca-certificates
 
 WORKDIR /app
 
@@ -45,8 +42,9 @@ COPY --from=backend-builder /app/backend/donde-ayudo-server ./
 # Copiar el frontend compilado
 COPY --from=frontend-builder /app/dist ./public
 
-# Crear directorio para la base de datos
-RUN mkdir -p /data
+# Copiar script de inicialización
+COPY backend/init_db.sh ./
+RUN chmod +x init_db.sh
 
 # Variables de entorno
 ENV PORT=8080

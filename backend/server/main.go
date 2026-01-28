@@ -23,7 +23,7 @@ func main() {
 	log.Printf("🔧 Configuración cargada - Entorno: %s\n", cfg.Environment)
 
 	// Conectar a base de datos
-	db, err := database.Connect(cfg.DBPath)
+	db, err := database.Connect(cfg.DatabaseURL)
 	if err != nil {
 		log.Fatalf("❌ Error conectando a la base de datos: %v", err)
 	}

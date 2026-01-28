@@ -1,23 +1,17 @@
 #!/bin/sh
-# Script para inicializar la base de datos con usuarios de prueba
+# Script para inicializar la base de datos PostgreSQL
 
-DB_PATH="${DB_PATH:-/data/data.db}"
+DATABASE_URL="${DATABASE_URL}"
 
-echo "📦 Inicializando base de datos en: $DB_PATH"
-
-# Verificar si la base de datos ya existe
-if [ -f "$DB_PATH" ]; then
-    echo "✅ Base de datos ya existe"
-    exit 0
+if [ -z "$DATABASE_URL" ]; then
+    echo "❌ ERROR: DATABASE_URL no está configurada"
+    exit 1
 fi
 
-echo "🔨 Creando base de datos nueva..."
+echo "📦 Inicializando base de datos PostgreSQL..."
 
-# Crear directorio si no existe
-mkdir -p "$(dirname "$DB_PATH")"
-
-# Crear base de datos y tablas
-sqlite3 "$DB_PATH" << 'EOF'
+# Crear tablas y datos usando psql
+psql "$DATABASE_URL" << 'EOF'
 -- Tabla de usuarios
 CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
@@ -25,10 +19,10 @@ CREATE TABLE IF NOT EXISTS users (
     password TEXT NOT NULL,
     name TEXT NOT NULL,
     rol TEXT NOT NULL CHECK(rol IN ('superadmin', 'admin', 'verificador', 'usuario')),
-    activo INTEGER DEFAULT 1,
-    verified INTEGER DEFAULT 1,
-    created TEXT DEFAULT CURRENT_TIMESTAMP,
-    updated TEXT DEFAULT CURRENT_TIMESTAMP
+    activo BOOLEAN DEFAULT true,
+    verified BOOLEAN DEFAULT true,
+    created TIMESTAMP DEFAULT NOW(),
+    updated TIMESTAMP DEFAULT NOW()
 );
 
 -- Tabla de puntos
@@ -46,8 +40,8 @@ CREATE TABLE IF NOT EXISTS puntos (
     capacidad INTEGER,
     estado TEXT DEFAULT 'activo' CHECK(estado IN ('activo', 'inactivo', 'pendiente', 'cerrado')),
     categoria TEXT CHECK(categoria IN ('acopio', 'albergue', 'hidratacion', 'sos')),
-    created TEXT DEFAULT CURRENT_TIMESTAMP,
-    updated TEXT DEFAULT CURRENT_TIMESTAMP,
+    created TIMESTAMP DEFAULT NOW(),
+    updated TIMESTAMP DEFAULT NOW(),
     created_by TEXT
 );
 
@@ -60,15 +54,15 @@ CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 -- Usuario superadmin por defecto (password: admin123)
 INSERT INTO users (id, email, password, name, rol, activo, verified) 
 VALUES (
-    'admin-' || hex(randomblob(16)),
+    'admin-' || encode(gen_random_bytes(16), 'hex'),
     'admin@dondeayudo.cl',
-    '$2a$10$rT8YvV9w7JqL3H8KZ9xVh.xE5J5KZ8YvV9w7JqL3H8KZ9xVh.xE5J',
+    '\$2a\$10\$rT8YvV9w7JqL3H8KZ9xVh.xE5J5KZ8YvV9w7JqL3H8KZ9xVh.xE5J',
     'Administrador',
     'superadmin',
-    1,
-    1
-);
-
+    true,
+    true
+)
+ON CONFLICT (email) DO NOTHING;
 
 EOF
 

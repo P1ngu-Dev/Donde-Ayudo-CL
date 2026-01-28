@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"log"
 
-	_ "modernc.org/sqlite"
+	_ "github.com/lib/pq"
 )
 
 var DB *sql.DB
 
-func Connect(dbPath string) (*sql.DB, error) {
-	db, err := sql.Open("sqlite", dbPath)
+func Connect(dbURL string) (*sql.DB, error) {
+	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		return nil, fmt.Errorf("error abriendo base de datos: %w", err)
 	}
@@ -24,7 +24,7 @@ func Connect(dbPath string) (*sql.DB, error) {
 	}
 
 	DB = db
-	log.Printf("✅ Conectado a SQLite: %s\n", dbPath)
+	log.Printf("✅ Conectado a PostgreSQL\n")
 	return db, nil
 }
 

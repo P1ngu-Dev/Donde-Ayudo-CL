@@ -10,7 +10,7 @@ type Config struct {
 	Port        string
 	JWTSecret   string
 	JWTExpiry   time.Duration
-	DBPath      string
+	DatabaseURL string
 	Environment string
 }
 
@@ -26,9 +26,10 @@ func Load() *Config {
 		port = "8090"
 	}
 
-	dbPath := os.Getenv("DB_PATH")
-	if dbPath == "" {
-		dbPath = "../pb_data/data.db"
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" {
+		databaseURL = "postgres://localhost:5432/donde_ayudo?sslmode=disable"
+		log.Println("⚠️  Usando DATABASE_URL por defecto. Configura DATABASE_URL en producción!")
 	}
 
 	env := os.Getenv("ENVIRONMENT")
@@ -40,7 +41,7 @@ func Load() *Config {
 		Port:        port,
 		JWTSecret:   jwtSecret,
 		JWTExpiry:   24 * time.Hour,
-		DBPath:      dbPath,
+		DatabaseURL: databaseURL,
 		Environment: env,
 	}
 }
