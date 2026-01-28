@@ -28,7 +28,9 @@ services:
     
     # Recursos
     instance_count: 1
-    instance_size_slug: basic-xxs # $5/mes
+    instance_size_slug: basic-xxs # $5/mes (512MB RAM - para ~200 usuarios)
+    # Para emergencia con 500-1000 usuarios: professional-xs ($12/mes - 1GB RAM)
+    # Para >1000 usuarios: professional-s ($24/mes - 2GB RAM, 2 vCPUs, autoscaling)
     
     # HTTP
     http_port: 8091
