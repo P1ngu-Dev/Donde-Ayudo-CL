@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/P1ngu-Dev/donde-ayudo-cl/backend/config"
 	"github.com/P1ngu-Dev/donde-ayudo-cl/backend/database"
@@ -36,7 +38,9 @@ func main() {
 	r.Use(mw.CORS())            // CORS para desarrollo
 
 	// ==================== RUTAS PÚBLICAS ====================
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+	
+	// API Routes
+	r.Get("/api", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"message":"Donde Ayudo CL API v1.0","status":"running"}`))
 	})

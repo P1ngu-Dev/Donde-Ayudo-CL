@@ -31,35 +31,32 @@ COPY . .
 # Build del frontend con Vite
 RUN npm run build
 
-# Etapa 3: Imagen final con Nginx para servir frontend y proxy al backend
-FROM nginx:alpine
+# Etapa 3: Imagen final simplificada (Backend Go sirve frontend)
+FROM golang:1.24-alpine
 
-# Instalar supervisor para ejecutar backend + nginx
-RUN apk add --no-cache supervisor sqlite-libs
+# Instalar sqlite runtime
+RUN apk add --no-cache sqlite-libs ca-certificates
+
+WORKDIR /app
 
 # Copiar el binario del backend
-COPY --from=backend-builder /app/backend/donde-ayudo-server /usr/local/bin/donde-ayudo-server
+COPY --from=backend-builder /app/backend/donde-ayudo-server ./
 
 # Copiar el frontend compilado
-COPY --from=frontend-builder /app/dist /usr/share/nginx/html
-
-# Copiar configuración de Nginx
-COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
-
-# Copiar configuración de Supervisor
-COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY --from=frontend-builder /app/dist ./public
 
 # Crear directorio para la base de datos
-RUN mkdir -p /app/data
+RUN mkdir -p /data
 
-# Variables de entorno por defecto
-ENV PORT=8091
-ENV DB_PATH=/app/data/data.db
+# Variables de entorno
+ENV PORT=8080
+ENV DB_PATH=/data/data.db
 ENV ENVIRONMENT=production
 ENV JWT_SECRET=change-this-in-production
+ENV STATIC_DIR=/app/public
 
-# Exponer puerto 80 (Nginx)
-EXPOSE 80
+# Exponer puerto 8080
+EXPOSE 8080
 
-# Iniciar supervisor (ejecuta backend + nginx)
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+# Iniciar backend (servirá también el frontend)
+CMD ["./donde-ayudo-server"]
