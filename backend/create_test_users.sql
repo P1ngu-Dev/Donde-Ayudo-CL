@@ -1,0 +1,4 @@
+INSERT INTO users (id, email, password, name, rol, organizacion, activo, verified, tokenKey, created, updated) VALUES 
+('usr_superadmin', 'super@donde-ayudo.cl', '$2a$10$3EEwr4c5cp4grxO5HMos5.s7tNylN2a.rXnWxlLk27taJwd1z1VSi', 'Super Admin', 'superadmin', 'Donde Ayudo CL', 1, 1, 'token_super_' || hex(randomblob(16)), datetime('now'), datetime('now')),
+('usr_admin', 'admin@donde-ayudo.cl', '$2a$10$3EEwr4c5cp4grxO5HMos5.s7tNylN2a.rXnWxlLk27taJwd1z1VSi', 'Admin', 'admin', 'Municipalidad Test', 1, 1, 'token_admin_' || hex(randomblob(16)), datetime('now'), datetime('now')),
+('usr_verificador', 'verificador@donde-ayudo.cl', '$2a$10$3EEwr4c5cp4grxO5HMos5.s7tNylN2a.rXnWxlLk27taJwd1z1VSi', 'Verificador', 'verificador', 'Cruz Roja', 1, 1, 'token_verif_' || hex(randomblob(16)), datetime('now'), datetime('now'));

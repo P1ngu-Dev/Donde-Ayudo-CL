@@ -1,9 +1,13 @@
 /**
- * Servicio de Administración - CRUD de puntos y solicitudes
+ * Servicio de Administración - CRUD de puntos y usuarios
  */
 
-import { pb } from './DataRepository.js';
 import { authService } from './AuthService.js';
+
+// URL del backend Go
+// En desarrollo usa rutas relativas (proxy de Vite)
+// En producción usa la URL base del sitio
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 class AdminService {
   constructor() {}
@@ -11,33 +15,40 @@ class AdminService {
   // ==================== PUNTOS ====================
 
   /**
-   * Obtiene todos los puntos (sin filtrar por estado)
+   * Obtiene todos los puntos (sin filtrar por estado) - requiere auth
    */
   async getAllPuntos(page = 1, perPage = 50, filters = {}) {
-    const filterParts = [];
-    
-    if (filters.estado) {
-      filterParts.push(`estado = "${filters.estado}"`);
-    }
-    if (filters.categoria) {
-      filterParts.push(`categoria = "${filters.categoria}"`);
-    }
-    if (filters.search) {
-      filterParts.push(`(nombre ~ "${filters.search}" || ciudad ~ "${filters.search}" || direccion ~ "${filters.search}")`);
-    }
-    
-    const filterString = filterParts.join(' && ');
-    
-    const result = await pb.collection('puntos').getList(page, perPage, {
-      filter: filterString || undefined
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: perPage.toString()
     });
     
+    if (filters.estado) {
+      params.append('estado', filters.estado);
+    }
+    if (filters.categoria) {
+      params.append('categoria', filters.categoria);
+    }
+    if (filters.ciudad) {
+      params.append('ciudad', filters.ciudad);
+    }
+    
+    const response = await fetch(`${API_URL}/api/admin/puntos?${params}`, {
+      headers: authService.getAuthHeaders()
+    });
+    
+    if (!response.ok) {
+      throw new Error('Error obteniendo puntos');
+    }
+    
+    const result = await response.json();
+    
     return {
-      items: result.items,
-      page: result.page,
-      perPage: result.perPage,
-      totalItems: result.totalItems,
-      totalPages: result.totalPages
+      items: result.data || [],
+      page: result.page || 1,
+      perPage: result.limit || perPage,
+      totalItems: result.total || 0,
+      totalPages: Math.ceil((result.total || 0) / perPage)
     };
   }
 
@@ -45,73 +56,96 @@ class AdminService {
    * Obtiene un punto por ID
    */
   async getPunto(id) {
-    return await pb.collection('puntos').getOne(id);
+    const response = await fetch(`${API_URL}/api/admin/puntos/${id}`, {
+      headers: authService.getAuthHeaders()
+    });
+    
+    if (!response.ok) {
+      throw new Error('Punto no encontrado');
+    }
+    
+    return await response.json();
   }
 
   /**
    * Crea un nuevo punto
    */
   async createPunto(data) {
-    // Agregar info de verificación
-    const user = authService.getCurrentUser();
-    const enrichedData = {
-      ...data,
-      verificado_por: user?.id,
-      entidad_verificadora: user?.organizacion || user?.name || 'Admin Web',
-      fecha_verificacion: new Date().toISOString()
-    };
+    const response = await fetch(`${API_URL}/api/admin/puntos`, {
+      method: 'POST',
+      headers: authService.getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
     
-    return await pb.collection('puntos').create(enrichedData);
+    if (!response.ok) {
+      throw new Error('Error creando punto');
+    }
+    
+    return await response.json();
   }
 
   /**
    * Actualiza un punto existente
    */
   async updatePunto(id, data) {
-    // Si se cambia el estado a publicado, agregar info de verificación
-    if (data.estado === 'publicado') {
-      const user = authService.getCurrentUser();
-      data.verificado_por = user?.id;
-      data.entidad_verificadora = user?.organizacion || user?.name || 'Admin Web';
-      data.fecha_verificacion = new Date().toISOString();
+    const response = await fetch(`${API_URL}/api/admin/puntos/${id}`, {
+      method: 'PATCH',
+      headers: authService.getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    
+    if (!response.ok) {
+      throw new Error('Error actualizando punto');
     }
     
-    return await pb.collection('puntos').update(id, data);
+    return await response.json();
   }
 
   /**
    * Elimina un punto
    */
   async deletePunto(id) {
-    return await pb.collection('puntos').delete(id);
+    const response = await fetch(`${API_URL}/api/admin/puntos/${id}`, {
+      method: 'DELETE',
+      headers: authService.getAuthHeaders()
+    });
+    
+    if (!response.ok) {
+      throw new Error('Error eliminando punto');
+    }
+    
+    return { success: true };
   }
 
   /**
    * Cambia el estado de un punto rápidamente
    */
   async changeEstado(id, nuevoEstado) {
-    return await this.updatePunto(id, { estado: nuevoEstado });
+    const response = await fetch(`${API_URL}/api/admin/puntos/${id}/estado`, {
+      method: 'PATCH',
+      headers: authService.getAuthHeaders(),
+      body: JSON.stringify({ estado: nuevoEstado })
+    });
+    
+    if (!response.ok) {
+      throw new Error('Error cambiando estado');
+    }
+    
+    return await response.json();
   }
 
   /**
    * Verifica un punto (cambia estado a publicado)
    */
   async verificarPunto(id, notasInternas = '') {
-    const user = authService.getCurrentUser();
-    return await pb.collection('puntos').update(id, {
-      estado: 'publicado',
-      verificado_por: user?.id,
-      entidad_verificadora: user?.organizacion || user?.name || 'Admin Web',
-      fecha_verificacion: new Date().toISOString(),
-      notas_internas: notasInternas
-    });
+    return await this.changeEstado(id, 'publicado');
   }
 
   /**
    * Rechaza un punto
    */
   async rechazarPunto(id, motivo = '') {
-    return await pb.collection('puntos').update(id, {
+    return await this.updatePunto(id, {
       estado: 'rechazado',
       notas_internas: `RECHAZADO: ${motivo}`
     });
@@ -120,66 +154,33 @@ class AdminService {
   // ==================== SOLICITUDES EXTERNAS ====================
 
   /**
-   * Obtiene solicitudes externas (bandeja de entrada)
+   * Funcionalidad de solicitudes pendiente de implementar en backend Go
    */
   async getSolicitudes(page = 1, perPage = 20, onlyPending = true) {
-    const filter = onlyPending ? 'procesado = false' : '';
-    
-    return await pb.collection('solicitudes_externas').getList(page, perPage, {
-      filter: filter || undefined
-    });
+    console.warn('⚠️ getSolicitudes: Funcionalidad pendiente de implementar');
+    return { items: [], page: 1, perPage, totalItems: 0, totalPages: 0 };
   }
 
-  /**
-   * Marca una solicitud como procesada
-   */
   async marcarProcesada(id) {
-    return await pb.collection('solicitudes_externas').update(id, {
-      procesado: true
-    });
+    console.warn('⚠️ marcarProcesada: Funcionalidad pendiente de implementar');
+    return null;
   }
 
-  /**
-   * Convierte una solicitud externa en un punto
-   */
   async convertirAPunto(solicitudId, datosAdicionales = {}) {
-    // 1. Obtener la solicitud
-    const solicitud = await pb.collection('solicitudes_externas').getOne(solicitudId);
-    const datos = solicitud.datos_brutos;
-    
-    // 2. Crear el punto con los datos de la solicitud + adicionales
-    const punto = await this.createPunto({
-      nombre: datos.nombre || 'Sin nombre',
-      latitud: datos.lat || datos.latitud || 0,
-      longitud: datos.lng || datos.longitud || 0,
-      direccion: datos.direccion || '',
-      ciudad: datos.ciudad || '',
-      categoria: datos.categoria || 'informacion',
-      subtipo: datos.subtipo || datos.type || '',
-      contacto_principal: datos.contacto || datos.telefono || '',
-      necesidades_raw: datos.descripcion || datos.necesidades || '',
-      estado: 'revision', // Por defecto en revisión
-      ...datosAdicionales
-    });
-    
-    // 3. Marcar solicitud como procesada
-    await this.marcarProcesada(solicitudId);
-    
-    return punto;
+    console.warn('⚠️ convertirAPunto: Funcionalidad pendiente de implementar');
+    return null;
   }
 
   // ==================== ESTADÍSTICAS ====================
 
   /**
    * Obtiene estadísticas generales
+   * Calcula localmente desde todos los puntos
    */
   async getEstadisticas() {
-    // Obtener todos los puntos (con paginación grande para respetar reglas de API)
-    const puntosResult = await pb.collection('puntos').getList(1, 5000);
-    const solicitudesResult = await pb.collection('solicitudes_externas').getList(1, 5000);
-    
-    const puntos = puntosResult.items;
-    const solicitudes = solicitudesResult.items;
+    // Obtener todos los puntos
+    const result = await this.getAllPuntos(1, 5000);
+    const puntos = result.items;
     
     // Calcular stats
     const stats = {
@@ -188,7 +189,7 @@ class AdminService {
       enRevision: puntos.filter(p => p.estado === 'revision').length,
       ocultos: puntos.filter(p => p.estado === 'oculto').length,
       rechazados: puntos.filter(p => p.estado === 'rechazado').length,
-      solicitudesPendientes: solicitudes.filter(s => !s.procesado).length,
+      solicitudesPendientes: 0, // TODO: Implementar cuando exista endpoint
       
       // Por categoría
       porCategoria: {
@@ -209,7 +210,10 @@ class AdminService {
     const ahora = new Date();
     const hace7Dias = new Date(ahora.getTime() - dias * 24 * 60 * 60 * 1000);
     
-    return puntos.filter(p => new Date(p.created) > hace7Dias).length;
+    return puntos.filter(p => {
+      const created = p.created || p.created_at;
+      return created && new Date(created) > hace7Dias;
+    }).length;
   }
 
   // ==================== USUARIOS ====================
@@ -222,31 +226,75 @@ class AdminService {
       throw new Error('No tienes permisos para ver usuarios');
     }
     
-    return await pb.collection('users').getList(page, perPage, {
-      sort: '-created'
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: perPage.toString()
     });
+    
+    const response = await fetch(`${API_URL}/api/admin/users?${params}`, {
+      headers: authService.getAuthHeaders()
+    });
+    
+    if (!response.ok) {
+      throw new Error('Error obteniendo usuarios');
+    }
+    
+    const result = await response.json();
+    
+    return {
+      items: result.data || [],
+      page: result.page || 1,
+      perPage: result.limit || perPage,
+      totalItems: result.total || 0,
+      totalPages: Math.ceil((result.total || 0) / perPage)
+    };
+  }
+
+  /**
+   * Crea un nuevo usuario (solo superadmin)
+   */
+  async createUsuario(userData) {
+    if (!authService.isSuperAdmin()) {
+      throw new Error('No tienes permisos para crear usuarios');
+    }
+    
+    const response = await fetch(`${API_URL}/api/admin/users`, {
+      method: 'POST',
+      headers: authService.getAuthHeaders(),
+      body: JSON.stringify(userData)
+    });
+    
+    if (!response.ok) {
+      throw new Error('Error creando usuario');
+    }
+    
+    return await response.json();
   }
 
   /**
    * Actualiza rol de un usuario (solo superadmin)
+   * Nota: Funcionalidad pendiente en backend
    */
   async updateUsuarioRol(userId, rol) {
     if (!authService.isSuperAdmin()) {
       throw new Error('No tienes permisos para modificar usuarios');
     }
     
-    return await pb.collection('users').update(userId, { rol });
+    console.warn('⚠️ updateUsuarioRol: Funcionalidad pendiente de implementar en backend');
+    return null;
   }
 
   /**
    * Activa/desactiva un usuario (solo superadmin)
+   * Nota: Funcionalidad pendiente en backend
    */
   async toggleUsuarioActivo(userId, activo) {
     if (!authService.isSuperAdmin()) {
       throw new Error('No tienes permisos para modificar usuarios');
     }
     
-    return await pb.collection('users').update(userId, { activo });
+    console.warn('⚠️ toggleUsuarioActivo: Funcionalidad pendiente de implementar en backend');
+    return null;
   }
 }
 

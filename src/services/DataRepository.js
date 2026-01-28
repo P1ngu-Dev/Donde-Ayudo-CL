@@ -1,24 +1,18 @@
-// Repositorio de datos con PocketBase
-// Fuente de verdad: PocketBase API -> LocalStorage (cache) -> Memoria
-
-import PocketBase from 'pocketbase';
+// Repositorio de datos con Backend Go + SQLite
+// Fuente de verdad: Go API -> LocalStorage (cache) -> Memoria
 
 const STORAGE_KEY = 'donde-ayudo-data';
 
-// URL de PocketBase
-// En desarrollo: conecta directamente a PocketBase (puerto 8090)
-// En producción: usa variable de entorno o ruta relativa
-const POCKETBASE_URL = import.meta.env.VITE_POCKETBASE_URL || 
-  (import.meta.env.DEV ? 'http://127.0.0.1:8090' : '/');
-
-// Instancia global de PocketBase
-export const pb = new PocketBase(POCKETBASE_URL);
+// URL del backend Go
+// En desarrollo usa rutas relativas (proxy de Vite)
+// En producción usa la URL base del sitio
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 /**
- * Transforma un registro de PocketBase al formato que espera el frontend
+ * Transforma un registro de la API Go al formato que espera el frontend
  * Esto permite mantener compatibilidad con el código existente del mapa
  */
-function transformPBtoFrontend(record) {
+function transformAPItoFrontend(record) {
   return {
     // Campos que el frontend ya usa (compatibilidad)
     id: record.id,
@@ -41,7 +35,7 @@ function transformPBtoFrontend(record) {
     supplies_needed: record.necesidades_tags || [],
     info: record.necesidades_raw || '',
     
-    // Campos nuevos del sistema PocketBase
+    // Campos nuevos del sistema
     categoria: record.categoria,
     subtipo: record.subtipo,
     estado: record.estado,
@@ -61,6 +55,7 @@ function transformPBtoFrontend(record) {
     logistica_llegada: record.logistica_llegada,
     requiere_voluntarios: record.requiere_voluntarios,
     urgencia: record.urgencia,
+    evidencia_fotos: record.evidencia_fotos || [],
     
     // Metadatos
     created_at: record.created,
@@ -83,9 +78,9 @@ export class DataRepository {
     // 1. Cargar caché local inmediato (para velocidad)
     this.loadFromStorage();
     
-    // 2. Intentar actualizar desde PocketBase
+    // 2. Intentar actualizar desde la API
     try {
-      const freshData = await this.fetchFromPocketBase();
+      const freshData = await this.fetchFromAPI();
       // Solo actualizar si los datos son diferentes
       if (freshData.length > 0) {
         this.saveToStorage(freshData);
@@ -93,7 +88,7 @@ export class DataRepository {
         this.cache.clear();
       }
     } catch (error) {
-      console.warn('⚠️ No se pudo conectar a PocketBase, usando caché local:', error.message);
+      console.warn('⚠️ No se pudo conectar a la API, usando caché local:', error.message);
       // Si no hay datos en caché, intentar cargar el JSON estático como fallback
       if (this.points.length === 0) {
         try {
@@ -122,25 +117,18 @@ export class DataRepository {
   }
 
   /**
-   * Obtiene datos desde PocketBase
+   * Obtiene datos desde la API Go
    * Solo trae puntos con estado "publicado" por defecto
    */
-  async fetchFromPocketBase(includeUnverified = false) {
-    // Traer todos los puntos sin sort (sort estaba causando el error 400)
-    let allRecords = [];
-    let page = 1;
-    const perPage = 500;
+  async fetchFromAPI(includeUnverified = false) {
+    const response = await fetch(`${API_URL}/api/puntos?limit=1000`);
     
-    while (true) {
-      const result = await pb.collection('puntos').getList(page, perPage);
-      
-      allRecords = allRecords.concat(result.items);
-      
-      if (result.items.length < perPage) {
-        break; // Ya no hay más páginas
-      }
-      page++;
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
     }
+    
+    const result = await response.json();
+    const allRecords = result.data || [];
     
     // Filtrar en cliente si necesario
     // Permitimos SOS en revisión para que aparezcan como reportes de la comunidad
@@ -148,10 +136,10 @@ export class DataRepository {
       ? allRecords 
       : allRecords.filter(r => r.estado === 'publicado' || (r.estado === 'revision' && r.categoria === 'sos'));
     
-    console.log(`🌐 Obtenidos ${records.length} puntos desde PocketBase (${allRecords.length} totales)`);
+    console.log(`🌐 Obtenidos ${records.length} puntos desde API (${allRecords.length} totales)`);
     
     // Transformar al formato del frontend
-    return records.map(transformPBtoFrontend);
+    return records.map(transformAPItoFrontend);
   }
 
   /**
@@ -203,17 +191,13 @@ export class DataRepository {
 
   /**
    * Envía una solicitud externa (SOS o datos de usuario)
-   * Esto va a la tabla solicitudes_externas
+   * Nota: La API actual no tiene este endpoint, se puede implementar más tarde
    */
   async submitExternalRequest(data, origen = 'web') {
     try {
-      const record = await pb.collection('solicitudes_externas').create({
-        origen: origen,
-        datos_brutos: data,
-        procesado: false
-      });
-      console.log('✅ Solicitud enviada:', record.id);
-      return { success: true, id: record.id };
+      console.warn('⚠️ submitExternalRequest: Funcionalidad pendiente de implementar en backend Go');
+      // TODO: Implementar endpoint /api/solicitudes en backend Go
+      return { success: false, error: 'Funcionalidad no disponible temporalmente' };
     } catch (error) {
       console.error('❌ Error enviando solicitud:', error);
       return { success: false, error: error.message };
@@ -222,36 +206,14 @@ export class DataRepository {
 
   /**
    * Envía una alerta SOS directa al mapa (estado: revision)
-   * Updated: Force Cache Refresh
+   * Requiere autenticación en el futuro
    */
   async submitSOS(data) {
     try {
-      // 1. Crear registro en colección 'puntos'
-      const record = await pb.collection('puntos').create({
-         latitud: data.lat,
-         longitud: data.lng,
-         categoria: 'sos',
-         subtipo: data.type || 'solicitud',
-         estado: 'revision', // Visible pero marcado como no verificado
-         urgencia: 'alta',
-         nombre: data.nombre || 'Solicitud de Ayuda',
-         necesidades_raw: data.descripcion,
-         contacto_principal: data.contacto,
-         entidad_verificadora: 'Comunidad (Sin verificar)',
-         fecha_verificacion: new Date().toISOString() // Fecha del reporte
-      });
-      
-      console.log('🚨 SOS enviado:', record.id);
-      
-      // 2. Invalidar caché para que aparezca al refrescar
-      this.cache.clear();
-      localStorage.removeItem(STORAGE_KEY);
-      
-      // 3. Forzar recarga inmediata de puntos en memoria para UI reactiva
-      // (Opcional, pero ayuda a que el usuario vea su punto al instante)
-      await this.refresh();
-      
-      return { success: true, id: record.id };
+      console.warn('⚠️ submitSOS: Funcionalidad pendiente - requiere autenticación en backend Go');
+      // TODO: Implementar endpoint POST /api/puntos público o con auth opcional
+      // Por ahora los SOS se crean manualmente por admins
+      return { success: false, error: 'Los reportes SOS deben ser creados por administradores por el momento' };
     } catch (error) {
        console.error('❌ Error enviando SOS:', error);
        return { success: false, error: error.message };
@@ -259,10 +221,10 @@ export class DataRepository {
   }
 
   /**
-   * Fuerza recarga desde PocketBase
+   * Fuerza recarga desde la API
    */
   async refresh() {
-    const freshData = await this.fetchFromPocketBase();
+    const freshData = await this.fetchFromAPI();
     this.saveToStorage(freshData);
     this.points = freshData;
     this.cache.clear();

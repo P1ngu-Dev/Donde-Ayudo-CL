@@ -180,13 +180,10 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:8090',
-        changeOrigin: true
-      },
-      '/_': {
-        target: 'http://127.0.0.1:8090',
+        target: 'http://127.0.0.1:8091', // Backend Go
         changeOrigin: true
       }
+      // Proxy a PocketBase eliminado - ahora usamos Go backend
     }
   }
 });

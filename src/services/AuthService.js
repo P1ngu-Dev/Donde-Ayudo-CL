@@ -1,9 +1,15 @@
 /**
  * Servicio de Autenticación para Panel Admin
- * Maneja login, logout, verificación de roles y permisos
+ * Maneja login, logout, verificación de roles y permisos con JWT
  */
 
-import { pb } from './DataRepository.js';
+// URL del backend Go
+// En desarrollo usa rutas relativas (proxy de Vite)
+// En producción usa la URL base del sitio
+const API_URL = import.meta.env.VITE_API_URL || '';
+
+const TOKEN_KEY = 'donde-ayudo-token';
+const USER_KEY = 'donde-ayudo-user';
 
 // Roles disponibles y sus permisos
 export const ROLES = {
@@ -26,18 +32,69 @@ export const ROLES = {
 
 class AuthService {
   constructor() {
-    // Restaurar sesión si existe
-    this.user = pb.authStore.model;
-    this.isValid = pb.authStore.isValid;
-    
-    // Escuchar cambios en auth
-    pb.authStore.onChange((token, model) => {
-      this.user = model;
-      this.isValid = pb.authStore.isValid;
-      this.notifyListeners();
-    });
+    // Restaurar sesión desde localStorage si existe
+    this.token = localStorage.getItem(TOKEN_KEY);
+    this.user = this.loadUser();
+    this.isValid = !!(this.token && this.user);
     
     this.listeners = new Set();
+    
+    // Verificar token al cargar
+    if (this.isValid) {
+      this.verifyToken().catch(() => {
+        this.logout();
+      });
+    }
+  }
+
+  /**
+   * Carga usuario desde localStorage
+   */
+  loadUser() {
+    const userData = localStorage.getItem(USER_KEY);
+    if (userData) {
+      try {
+        return JSON.parse(userData);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Guarda usuario en localStorage
+   */
+  saveUser(user) {
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    this.user = user;
+  }
+
+  /**
+   * Verifica si el token es válido
+   */
+  async verifyToken() {
+    if (!this.token) return false;
+    
+    try {
+      const response = await fetch(`${API_URL}/api/auth/me`, {
+        headers: {
+          'Authorization': `Bearer ${this.token}`
+        }
+      });
+      
+      if (response.ok) {
+        const userData = await response.json();
+        this.saveUser(userData);
+        this.isValid = true;
+        return true;
+      } else {
+        return false;
+      }
+    } catch (error) {
+      console.error('Error verificando token:', error);
+      return false;
+    }
   }
 
   /**
@@ -57,11 +114,26 @@ class AuthService {
    */
   async login(email, password) {
     try {
-      const authData = await pb.collection('users').authWithPassword(email, password);
+      const response = await fetch(`${API_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        return { 
+          success: false, 
+          error: errorData.error || 'Error en el login'
+        };
+      }
+      
+      const data = await response.json();
       
       // Verificar si el usuario tiene rol
-      if (!authData.record.rol) {
-        await this.logout();
+      if (!data.user.rol) {
         return { 
           success: false, 
           error: 'Tu cuenta no tiene permisos de administración. Contacta al administrador.' 
@@ -69,26 +141,31 @@ class AuthService {
       }
       
       // Verificar si está activo
-      if (authData.record.activo === false) {
-        await this.logout();
+      if (data.user.activo === false) {
         return { 
           success: false, 
           error: 'Tu cuenta ha sido desactivada. Contacta al administrador.' 
         };
       }
       
+      // Guardar token y usuario
+      this.token = data.token;
+      localStorage.setItem(TOKEN_KEY, data.token);
+      this.saveUser(data.user);
+      this.isValid = true;
+      
+      this.notifyListeners();
+      
       return { 
         success: true, 
-        user: authData.record,
-        token: authData.token
+        user: data.user,
+        token: data.token
       };
     } catch (error) {
       console.error('Login error:', error);
       return { 
         success: false, 
-        error: error.message === 'Failed to authenticate.' 
-          ? 'Email o contraseña incorrectos' 
-          : error.message 
+        error: 'No se pudo conectar con el servidor'
       };
     }
   }
@@ -97,16 +174,36 @@ class AuthService {
    * Logout
    */
   async logout() {
-    pb.authStore.clear();
+    this.token = null;
     this.user = null;
     this.isValid = false;
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    this.notifyListeners();
   }
 
   /**
    * Verifica si hay una sesión válida
    */
   isAuthenticated() {
-    return pb.authStore.isValid && this.user?.rol;
+    return this.isValid && this.user?.rol;
+  }
+
+  /**
+   * Obtiene el token actual para requests autenticados
+   */
+  getToken() {
+    return this.token;
+  }
+
+  /**
+   * Headers para requests autenticados
+   */
+  getAuthHeaders() {
+    return {
+      'Authorization': `Bearer ${this.token}`,
+      'Content-Type': 'application/json'
+    };
   }
 
   /**

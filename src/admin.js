@@ -5,11 +5,10 @@
 
 import { authService, ROLES } from './services/AuthService.js';
 import { adminService } from './services/AdminService.js';
-import { pb } from './services/DataRepository.js';
 
 // Debug helpers (browser console)
-window.pb = pb;
 window.authService = authService;
+window.adminService = adminService;
 
 // ==================== STATE ====================
 let currentView = 'dashboard';
@@ -51,10 +50,6 @@ function showDashboard() {
   
   // Check permissions
   checkPermissions();
-  
-  // Set PocketBase admin link
-  const pbUrl = pb.baseUrl || window.location.origin;
-  document.getElementById('pb-admin-link').href = `${pbUrl}/_/`;
   
   // Load initial data
   loadDashboard();
@@ -742,29 +737,20 @@ window.adminActions = {
   
   async viewSolicitud(id) {
     try {
-      const solicitud = await pb.collection('solicitudes_externas').getOne(id);
-      const datos = typeof solicitud.datos_brutos === 'string' 
-        ? JSON.parse(solicitud.datos_brutos) 
-        : solicitud.datos_brutos;
+      // Funcionalidad de solicitudes pendiente en el backend
+      showToast('Esta funcionalidad estará disponible próximamente', 'warning');
+      return;
       
-      const content = document.getElementById('modal-view-content');
-      content.innerHTML = `
-        <div style="display: grid; gap: 1rem;">
-          <div>
-            <strong>Origen:</strong> ${escapeHtml(solicitud.origen || 'Desconocido')}
-          </div>
-          <div>
-            <strong>Fecha:</strong> ${formatDate(solicitud.created)}
-          </div>
-          <div>
-            <strong>Datos Recibidos:</strong>
-            <pre style="margin: 0.5rem 0; padding: 1rem; background: var(--gray-50); border-radius: 0.375rem; overflow: auto; font-size: 0.75rem;">${escapeHtml(JSON.stringify(datos, null, 2))}</pre>
-          </div>
-        </div>
-      `;
-      
-      document.getElementById('modal-view-edit').style.display = 'none';
-      document.getElementById('modal-view').classList.add('show');
+      // TODO: Implementar cuando el backend tenga endpoint de solicitudes
+      // const solicitud = await adminService.getSolicitud(id);
+      // const datos = typeof solicitud.datos_brutos === 'string' 
+      //   ? JSON.parse(solicitud.datos_brutos) 
+      //   : solicitud.datos_brutos;
+      // 
+      // const content = document.getElementById('modal-view-content');
+      // content.innerHTML = ...
+      // document.getElementById('modal-view-edit').style.display = 'none';
+      // document.getElementById('modal-view').classList.add('show');
     } catch (error) {
       showToast('Error cargando solicitud', 'error');
     }
