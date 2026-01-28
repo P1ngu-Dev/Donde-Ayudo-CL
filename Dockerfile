@@ -31,8 +31,8 @@ RUN npm run build
 # Etapa 3: Imagen final simplificada (Backend Go sirve frontend)
 FROM golang:1.24-alpine
 
-# Instalar PostgreSQL client y CA certificates
-RUN apk add --no-cache postgresql-client ca-certificates
+# Instalar CA certificates para conexiones HTTPS (Supabase)
+RUN apk add --no-cache ca-certificates
 
 WORKDIR /app
 
@@ -42,15 +42,9 @@ COPY --from=backend-builder /app/backend/donde-ayudo-server ./
 # Copiar el frontend compilado
 COPY --from=frontend-builder /app/dist ./public
 
-# Copiar script de inicialización
-COPY backend/init_db.sh ./
-RUN chmod +x init_db.sh
-
-# Variables de entorno
+# Variables de entorno (se sobrescriben con las de App Platform)
 ENV PORT=8080
-ENV DB_PATH=/data/data.db
 ENV ENVIRONMENT=production
-ENV JWT_SECRET=change-this-in-production
 ENV STATIC_DIR=/app/public
 
 # Exponer puerto 8080
