@@ -1,17 +1,6 @@
-#!/bin/sh
-# Script para inicializar la base de datos PostgreSQL
+-- Script de inicialización para Supabase
+-- Ejecutar en: Supabase Dashboard > SQL Editor
 
-DATABASE_URL="${DATABASE_URL}"
-
-if [ -z "$DATABASE_URL" ]; then
-    echo "❌ ERROR: DATABASE_URL no está configurada"
-    exit 1
-fi
-
-echo "📦 Inicializando base de datos PostgreSQL..."
-
-# Crear tablas y datos usando psql
-psql "$DATABASE_URL" << 'EOF'
 -- Tabla de usuarios
 CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
@@ -56,7 +45,7 @@ INSERT INTO users (id, email, password, name, rol, activo, verified)
 VALUES (
     'admin-' || encode(gen_random_bytes(16), 'hex'),
     'admin@dondeayudo.cl',
-    '\$2a\$10\$rT8YvV9w7JqL3H8KZ9xVh.xE5J5KZ8YvV9w7JqL3H8KZ9xVh.xE5J',
+    '$2a$10$rT8YvV9w7JqL3H8KZ9xVh.xE5J5KZ8YvV9w7JqL3H8KZ9xVh.xE5J',
     'Administrador',
     'superadmin',
     true,
@@ -64,7 +53,7 @@ VALUES (
 )
 ON CONFLICT (email) DO NOTHING;
 
-EOF
-
-echo "✅ Base de datos inicializada correctamente"
-echo "🔑 Usuario: admin@donde-ayudo.cl / Contraseña: admin123"
+-- Confirmar creación
+SELECT 'Tablas creadas correctamente' AS status;
+SELECT COUNT(*) AS total_usuarios FROM users;
+SELECT COUNT(*) AS total_puntos FROM puntos;

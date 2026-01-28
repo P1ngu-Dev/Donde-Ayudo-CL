@@ -1,14 +1,6 @@
 name: donde-ayudo-cl
 region: nyc # O sfo (más cercano a Chile)
 
-# Base de datos PostgreSQL
-databases:
-  - name: db
-    engine: PG
-    version: "16"
-    production: false
-    size: db-s-dev-database # $15/mes - 1GB RAM, 10GB disco
-
 # Servicio usando Dockerfile (backend + frontend)
 services:
   - name: app
@@ -28,7 +20,8 @@ services:
         type: SECRET
         # Configurar en dashboard: Settings > Environment Variables
       - key: DATABASE_URL
-        value: ${db.DATABASE_URL}
+        type: SECRET
+        # Supabase PostgreSQL: postgresql://postgres:[password]@[host]:5432/postgres
       - key: STATIC_DIR
         value: /app/public
     
