@@ -17,9 +17,11 @@ func GetUserByEmail(email string) (*models.User, error) {
 	`
 
 	user := &models.User{}
+	var organizacion, avatar sql.NullString
+
 	err := DB.QueryRow(query, email).Scan(
 		&user.ID, &user.Email, &user.Name, &user.Rol,
-		&user.Organizacion, &user.Avatar, &user.EmailVisibility,
+		&organizacion, &avatar, &user.EmailVisibility,
 		&user.Verified, &user.Activo, &user.Created, &user.Updated,
 	)
 
@@ -28,6 +30,13 @@ func GetUserByEmail(email string) (*models.User, error) {
 	}
 	if err != nil {
 		return nil, fmt.Errorf("error buscando usuario: %w", err)
+	}
+
+	if organizacion.Valid {
+		user.Organizacion = organizacion.String
+	}
+	if avatar.Valid {
+		user.Avatar = avatar.String
 	}
 
 	return user, nil
@@ -43,9 +52,11 @@ func GetUserByID(id string) (*models.User, error) {
 	`
 
 	user := &models.User{}
+	var organizacion, avatar sql.NullString
+
 	err := DB.QueryRow(query, id).Scan(
 		&user.ID, &user.Email, &user.Name, &user.Rol,
-		&user.Organizacion, &user.Avatar, &user.EmailVisibility,
+		&organizacion, &avatar, &user.EmailVisibility,
 		&user.Verified, &user.Activo, &user.Created, &user.Updated,
 	)
 
@@ -54,6 +65,13 @@ func GetUserByID(id string) (*models.User, error) {
 	}
 	if err != nil {
 		return nil, fmt.Errorf("error buscando usuario: %w", err)
+	}
+
+	if organizacion.Valid {
+		user.Organizacion = organizacion.String
+	}
+	if avatar.Valid {
+		user.Avatar = avatar.String
 	}
 
 	return user, nil
@@ -91,14 +109,24 @@ func GetUsers() ([]models.User, error) {
 	users := []models.User{}
 	for rows.Next() {
 		user := models.User{}
+		var organizacion, avatar sql.NullString
+		
 		err := rows.Scan(
 			&user.ID, &user.Email, &user.Name, &user.Rol,
-			&user.Organizacion, &user.Avatar, &user.EmailVisibility,
+			&organizacion, &avatar, &user.EmailVisibility,
 			&user.Verified, &user.Activo, &user.Created, &user.Updated,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("error escaneando usuario: %w", err)
 		}
+		
+		if organizacion.Valid {
+			user.Organizacion = organizacion.String
+		}
+		if avatar.Valid {
+			user.Avatar = avatar.String
+		}
+		
 		users = append(users, user)
 	}
 
