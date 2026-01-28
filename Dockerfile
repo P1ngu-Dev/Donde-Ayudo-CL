@@ -1,7 +1,10 @@
 # Etapa 1: Build del backend Go
-FROM golang:1.25.5-alpine AS backend-builder
+FROM golang:1.23-alpine AS backend-builder
 
 WORKDIR /app/backend
+
+# Instalar dependencias para CGO (requerido por SQLite)
+RUN apk add --no-cache gcc musl-dev sqlite-dev
 
 # Copiar módulos Go
 COPY backend/server/go.mod backend/server/go.sum ./
