@@ -1,5 +1,5 @@
 # Etapa 1: Build del backend Go
-FROM golang:1.23-alpine AS backend-builder
+FROM golang:1.22-alpine AS backend-builder
 
 WORKDIR /app/backend
 
