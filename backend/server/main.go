@@ -85,7 +85,40 @@ func main() {
 
 		// POST /api/admin/users - Crear usuario (superadmin)
 		r.With(mw.RequireRole("superadmin")).Post("/users", handlers.CreateUser)
-	})
+	})==================== FRONTEND ESTÁTICO ====================
+	// Servir archivos estáticos del frontend
+	staticDir := os.Getenv("STATIC_DIR")
+	if staticDir == "" {
+		staticDir = "./public" // Default para desarrollo local
+	}
+
+	// Verificar si existe el directorio
+	if _, err := os.Stat(staticDir); err == nil {
+		log.Printf("📁 Sirviendo frontend desde: %s\n", staticDir)
+		
+		// FileServer para assets
+		fs := http.FileServer(http.Dir(staticDir))
+		
+		r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
+			// Si el archivo existe, servirlo
+			path := filepath.Join(staticDir, r.URL.Path)
+			if _, err := os.Stat(path); err == nil {
+				fs.ServeHTTP(w, r)
+				return
+			}
+			
+			// Si no existe, servir index.html (SPA fallback)
+			http.ServeFile(w, r, filepath.Join(staticDir, "index.html"))
+		})
+	} else {
+		log.Printf("⚠️  Directorio de frontend no encontrado: %s (solo API)\n", staticDir)
+		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte(`{"message":"Donde Ayudo CL API v1.0","status":"running","mode":"api-only"}`))
+		})
+	}
+
+	// 
 
 	// Iniciar servidor
 	addr := ":" + cfg.Port
