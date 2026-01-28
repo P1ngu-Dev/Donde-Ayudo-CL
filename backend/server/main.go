@@ -38,7 +38,7 @@ func main() {
 	r.Use(mw.CORS())            // CORS para desarrollo
 
 	// ==================== RUTAS PÚBLICAS ====================
-	
+
 	// API Routes
 	r.Get("/api", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -97,10 +97,10 @@ func main() {
 	// Verificar si existe el directorio
 	if _, err := os.Stat(staticDir); err == nil {
 		log.Printf("📁 Sirviendo frontend desde: %s\n", staticDir)
-		
+
 		// FileServer para assets
 		fs := http.FileServer(http.Dir(staticDir))
-		
+
 		r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
 			// Si el archivo existe, servirlo
 			path := filepath.Join(staticDir, r.URL.Path)
@@ -108,7 +108,7 @@ func main() {
 				fs.ServeHTTP(w, r)
 				return
 			}
-			
+
 			// Si no existe, servir index.html (SPA fallback)
 			http.ServeFile(w, r, filepath.Join(staticDir, "index.html"))
 		})
@@ -120,7 +120,7 @@ func main() {
 		})
 	}
 
-	// 
+	//
 
 	// Iniciar servidor
 	addr := ":" + cfg.Port
