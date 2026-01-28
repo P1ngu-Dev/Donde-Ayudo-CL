@@ -216,6 +216,163 @@ doctl apps create-deployment <APP-ID>
 - Spaces (backups): $5/mes (250GB)
 - Alerta/Monitoring: Incluido gratis
 
+## 🔥 ESCENARIO DE EMERGENCIA: 1000+ Usuarios Concurrentes
+
+### Análisis de Recursos
+
+**Backend Go (estimación para 1000 usuarios concurrentes):**
+- RAM necesaria: ~2-3GB
+- CPU: 1-2 vCPUs
+- Requests/seg: ~500-1000 (Go maneja muy bien)
+
+**Frontend Estático:**
+- Servido por CDN de DigitalOcean
+- Escala automáticamente (sin límites prácticos)
+- No consume recursos del backend para assets
+
+### ⚠️ Limitación CRÍTICA: SQLite bajo carga
+
+**SQLite Performance:**
+- ✅ **Reads concurrentes**: Ilimitados (excelente)
+  - Consultar mapa: ✅ OK para 1000+ usuarios
+  - Ver puntos: ✅ Sin problemas
+  
+- ❌ **Writes concurrentes**: 1 a la vez (cuello de botella)
+  - Reportar nuevos puntos SOS: ⚠️ Posible problema
+  - Múltiples admins editando: ⚠️ Lock contention
+
+**Para emergencia real con muchos reportes simultáneos:**
+→ **Migrar a PostgreSQL Managed** (recomendado)
+
+### Planes Recomendados para Emergencia
+
+#### Opción 1: Básico ($11/mes) - Para testing/demo
+```yaml
+Frontend: Static Site - $5/mes
+Backend: Basic ($5/mes)
+  - 512MB RAM
+  - 1 vCPU
+  - ⚠️ Soporta ~100-200 usuarios concurrentes
+Volumen: 1GB - $1/mes
+```
+**Límites**: Se satura con >200 usuarios concurrentes
+
+#### Opción 2: Producción ($27/mes) - RECOMENDADO para emergencia ⭐
+```yaml
+Frontend: Static Site - $5/mes (CDN escala automáticamente)
+Backend: Professional ($12/mes)
+  - 1GB RAM
+  - 1 vCPU
+  - ✅ Soporta 500-800 usuarios concurrentes
+Volumen: 1GB - $1/mes
+PostgreSQL: Basic ($15/mes)
+  - 1GB RAM, 10GB storage
+  - ✅ Sin límite de writes concurrentes
+  - Backups automáticos
+```
+**Capacidad**: 500-1000 usuarios concurrentes cómodamente
+
+#### Opción 3: Alta Demanda ($54/mes) - Para >1000 usuarios
+```yaml
+Frontend: Static Site - $5/mes
+Backend: Professional con scaling ($24/mes)
+  - 2GB RAM
+  - 2 vCPUs
+  - 2 instancias (auto-scaling)
+  - ✅ Soporta >2000 usuarios concurrentes
+PostgreSQL: Basic ($25/mes)
+  - 2GB RAM, 25GB storage
+```
+**Capacidad**: >2000 usuarios concurrentes
+
+### Recomendación para Emergencia Incendios
+
+**Fase 1: Lanzamiento Inmediato (1-3 días)**
+```
+Plan: Básico ($11/mes) con SQLite
+- Deploy rápido (10 minutos)
+- Sin migración de BD
+- Monitorear uso
+```
+
+**Fase 2: Si supera 200 usuarios concurrentes**
+```
+Upgrade a: Professional + PostgreSQL ($27/mes)
+- Migrar en ~1 hora
+- Aguanta 1000+ usuarios
+- Backups automáticos
+```
+
+**Fase 3: Si se viraliza (>1000 usuarios)**
+```
+Scaling automático: $54/mes
+- 2 instancias backend
+- PostgreSQL upgraded
+- Load balancing automático
+```
+
+### 🚀 Upgrade Instantáneo en DigitalOcean
+
+Si el tráfico aumenta durante la emergencia:
+
+```bash
+# Desde dashboard (sin downtime):
+Settings → Components → Backend
+→ Change Plan → Professional
+→ Confirm (upgrade toma ~2 minutos)
+
+# Habilitar auto-scaling:
+Settings → Scaling
+→ Min instances: 1
+→ Max instances: 3
+→ Target CPU: 75%
+```
+
+### 📊 Monitoreo en Tiempo Real
+
+```bash
+# Ver métricas actuales
+Dashboard → Insights
+- Request rate
+- CPU usage
+- Memory usage
+- Response time
+
+# Alertas
+Settings → Alerts
+- CPU > 80% → Escalar
+- Memory > 85% → Alerta
+- Response time > 2s → Revisar
+```
+
+### Migración Rápida a PostgreSQL (1 hora)
+
+Si SQLite se satura:
+
+```bash
+# 1. Crear PostgreSQL Managed en DO (5 min)
+Databases → Create → PostgreSQL Basic
+
+# 2. Exportar datos (10 min)
+sqlite3 data.db .dump > backup.sql
+
+# 3. Adaptar schema para PostgreSQL (15 min)
+# Cambiar AUTOINCREMENT → SERIAL
+# Cambiar datetime('now') → NOW()
+
+# 4. Importar (5 min)
+psql -h db-host -U user -d db < backup.sql
+
+# 5. Actualizar backend Go (20 min)
+# Cambiar driver: sqlite → lib/pq
+# Actualizar connection string
+
+# 6. Deploy (5 min)
+git push origin main
+```
+
+**Downtime total**: ~5-10 minutos durante migración
+
 ## ✅ Checklist de Deploy
 
 ### Pre-Deploy
