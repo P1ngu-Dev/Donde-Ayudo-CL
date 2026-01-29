@@ -101,3 +101,133 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(`{"message":"Logged out successfully"}`))
 }
+
+// ChangePassword permite a un usuario cambiar su contraseña actual
+func ChangePassword(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r)
+	if userID == "" {
+		http.Error(w, `{"error":"Unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
+
+	var req models.ChangePasswordRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"Invalid request body"}`, http.StatusBadRequest)
+		return
+	}
+
+	if req.CurrentPassword == "" || req.NewPassword == "" {
+		http.Error(w, `{"error":"Current password and new password are required"}`, http.StatusBadRequest)
+		return
+	}
+
+	if len(req.NewPassword) < 6 {
+		http.Error(w, `{"error":"New password must be at least 6 characters"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Verificar contraseña actual
+	currentHash, err := database.GetUserPasswordHashByID(userID)
+	if err != nil {
+		log.Printf("❌ Error obteniendo hash de contraseña: %v", err)
+		http.Error(w, `{"error":"Internal server error"}`, http.StatusInternalServerError)
+		return
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(currentHash), []byte(req.CurrentPassword))
+	if err != nil {
+		http.Error(w, `{"error":"Current password is incorrect"}`, http.StatusUnauthorized)
+		return
+	}
+
+	// Generar nuevo hash
+	newHash, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		log.Printf("❌ Error generando hash de contraseña: %v", err)
+		http.Error(w, `{"error":"Internal server error"}`, http.StatusInternalServerError)
+		return
+	}
+
+	// Actualizar contraseña
+	err = database.UpdateUserPassword(userID, string(newHash))
+	if err != nil {
+		log.Printf("❌ Error actualizando contraseña: %v", err)
+		http.Error(w, `{"error":"Error updating password"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(`{"message":"Password changed successfully"}`))
+}
+
+// ConfirmPassword permite confirmar/cambiar la contraseña temporal en el primer login
+func ConfirmPassword(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r)
+	if userID == "" {
+		http.Error(w, `{"error":"Unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
+
+	var req models.ConfirmPasswordRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"Invalid request body"}`, http.StatusBadRequest)
+		return
+	}
+
+	user, err := database.GetUserByID(userID)
+	if err != nil || user == nil {
+		http.Error(w, `{"error":"User not found"}`, http.StatusNotFound)
+		return
+	}
+
+	// Si quiere mantener la contraseña temporal
+	if req.KeepTempPassword {
+		err = database.ClearMustChangePassword(userID)
+		if err != nil {
+			log.Printf("❌ Error quitando flag de cambio de contraseña: %v", err)
+			http.Error(w, `{"error":"Internal server error"}`, http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"message":"Password confirmed successfully"}`))
+		return
+	}
+
+	// Si quiere cambiar la contraseña
+	if req.NewPassword == "" {
+		http.Error(w, `{"error":"New password is required"}`, http.StatusBadRequest)
+		return
+	}
+
+	if len(req.NewPassword) < 6 {
+		http.Error(w, `{"error":"New password must be at least 6 characters"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Generar nuevo hash
+	newHash, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		log.Printf("❌ Error generando hash de contraseña: %v", err)
+		http.Error(w, `{"error":"Internal server error"}`, http.StatusInternalServerError)
+		return
+	}
+
+	// Actualizar contraseña
+	err = database.UpdateUserPassword(userID, string(newHash))
+	if err != nil {
+		log.Printf("❌ Error actualizando contraseña: %v", err)
+		http.Error(w, `{"error":"Error updating password"}`, http.StatusInternalServerError)
+		return
+	}
+
+	// Quitar el flag de cambio obligatorio
+	err = database.ClearMustChangePassword(userID)
+	if err != nil {
+		log.Printf("❌ Error quitando flag de cambio de contraseña: %v", err)
+		http.Error(w, `{"error":"Internal server error"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(`{"message":"Password changed successfully"}`))
+}

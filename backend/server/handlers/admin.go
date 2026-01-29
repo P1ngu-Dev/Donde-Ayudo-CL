@@ -92,10 +92,10 @@ func UpdatePuntoEstado(w http.ResponseWriter, r *http.Request) {
 	}
 
 	validEstados := map[string]bool{
-		"publicado": true,
-		"revision":  true,
-		"oculto":    true,
-		"rechazado": true,
+		"activo":    true,
+		"pendiente": true,
+		"inactivo":  true,
+		"cerrado":   true,
 	}
 	if !validEstados[req.Estado] {
 		http.Error(w, `{"error":"Invalid estado value"}`, http.StatusBadRequest)
@@ -144,13 +144,7 @@ func GetUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreateUser(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		Email        string `json:"email"`
-		Name         string `json:"name"`
-		Password     string `json:"password"`
-		Rol          string `json:"rol"`
-		Organizacion string `json:"organizacion"`
-	}
+	var req models.CreateUserRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, `{"error":"Invalid request body"}`, http.StatusBadRequest)
@@ -178,7 +172,13 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := database.CreateUser(req.Email, req.Name, string(passwordHash), req.Rol, req.Organizacion)
+	var user *models.User
+	if req.MustChangePassword {
+		user, err = database.CreateUserWithTempPassword(req.Email, req.Name, string(passwordHash), req.Rol, req.Organizacion)
+	} else {
+		user, err = database.CreateUser(req.Email, req.Name, string(passwordHash), req.Rol, req.Organizacion)
+	}
+
 	if err != nil {
 		http.Error(w, `{"error":"Error creating user"}`, http.StatusInternalServerError)
 		return
@@ -186,5 +186,61 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(user.ToResponse())
+}
+
+// UpdateUserRol actualiza el rol de un usuario (solo superadmin)
+func UpdateUserRol(w http.ResponseWriter, r *http.Request) {
+	userID := chi.URLParam(r, "id")
+
+	var req struct {
+		Rol string `json:"rol"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"Invalid request body"}`, http.StatusBadRequest)
+		return
+	}
+
+	validRoles := map[string]bool{
+		"superadmin":  true,
+		"admin":       true,
+		"verificador": true,
+	}
+	if !validRoles[req.Rol] {
+		http.Error(w, `{"error":"Invalid rol value"}`, http.StatusBadRequest)
+		return
+	}
+
+	err := database.UpdateUserRol(userID, req.Rol)
+	if err != nil {
+		http.Error(w, `{"error":"Error updating user rol"}`, http.StatusInternalServerError)
+		return
+	}
+
+	user, _ := database.GetUserByID(userID)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(user.ToResponse())
+}
+
+// ToggleUserActive activa/desactiva un usuario (solo superadmin)
+func ToggleUserActive(w http.ResponseWriter, r *http.Request) {
+	userID := chi.URLParam(r, "id")
+
+	var req struct {
+		Activo bool `json:"activo"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"Invalid request body"}`, http.StatusBadRequest)
+		return
+	}
+
+	err := database.ToggleUserActive(userID, req.Activo)
+	if err != nil {
+		http.Error(w, `{"error":"Error updating user status"}`, http.StatusInternalServerError)
+		return
+	}
+
+	user, _ := database.GetUserByID(userID)
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(user.ToResponse())
 }

@@ -1,17 +1,18 @@
 package models
 
 type User struct {
-	ID              string `json:"id"`
-	Email           string `json:"email"`
-	Name            string `json:"name"`
-	Rol             string `json:"rol"`
-	Organizacion    string `json:"organizacion"`
-	Avatar          string `json:"avatar,omitempty"`
-	EmailVisibility bool   `json:"email_visibility"`
-	Verified        bool   `json:"verified"`
-	Activo          bool   `json:"activo"`
-	Created         string `json:"created,omitempty"`
-	Updated         string `json:"updated,omitempty"`
+	ID                 string `json:"id"`
+	Email              string `json:"email"`
+	Name               string `json:"name"`
+	Rol                string `json:"rol"`
+	Organizacion       string `json:"organizacion"`
+	Avatar             string `json:"avatar,omitempty"`
+	EmailVisibility    bool   `json:"email_visibility"`
+	Verified           bool   `json:"verified"`
+	Activo             bool   `json:"activo"`
+	MustChangePassword bool   `json:"must_change_password"`
+	Created            string `json:"created,omitempty"`
+	Updated            string `json:"updated,omitempty"`
 }
 
 type UserLogin struct {
@@ -20,20 +21,40 @@ type UserLogin struct {
 }
 
 type UserResponse struct {
-	ID           string `json:"id"`
-	Email        string `json:"email"`
-	Name         string `json:"name"`
-	Rol          string `json:"rol"`
-	Organizacion string `json:"organizacion"`
-	Avatar       string `json:"avatar,omitempty"`
-	Verified     bool   `json:"verified"`
-	Activo       bool   `json:"activo"`
-	Created      string `json:"created,omitempty"`
+	ID                 string `json:"id"`
+	Email              string `json:"email"`
+	Name               string `json:"name"`
+	Rol                string `json:"rol"`
+	Organizacion       string `json:"organizacion"`
+	Avatar             string `json:"avatar,omitempty"`
+	Verified           bool   `json:"verified"`
+	Activo             bool   `json:"activo"`
+	MustChangePassword bool   `json:"must_change_password"`
+	Created            string `json:"created,omitempty"`
 }
 
 type LoginResponse struct {
 	Token string       `json:"token"`
 	User  UserResponse `json:"user"`
+}
+
+type ChangePasswordRequest struct {
+	CurrentPassword string `json:"current_password"`
+	NewPassword     string `json:"new_password"`
+}
+
+type ConfirmPasswordRequest struct {
+	NewPassword      string `json:"new_password"`
+	KeepTempPassword bool   `json:"keep_temp_password"`
+}
+
+type CreateUserRequest struct {
+	Email              string `json:"email"`
+	Password           string `json:"password"`
+	Name               string `json:"name"`
+	Rol                string `json:"rol"`
+	Organizacion       string `json:"organizacion"`
+	MustChangePassword bool   `json:"must_change_password"`
 }
 
 func (u *User) HasRole(allowedRoles ...string) bool {
@@ -47,14 +68,15 @@ func (u *User) HasRole(allowedRoles ...string) bool {
 
 func (u *User) ToResponse() UserResponse {
 	return UserResponse{
-		ID:           u.ID,
-		Email:        u.Email,
-		Name:         u.Name,
-		Rol:          u.Rol,
-		Organizacion: u.Organizacion,
-		Avatar:       u.Avatar,
-		Verified:     u.Verified,
-		Activo:       u.Activo,
-		Created:      u.Created,
+		ID:                 u.ID,
+		Email:              u.Email,
+		Name:               u.Name,
+		Rol:                u.Rol,
+		Organizacion:       u.Organizacion,
+		Avatar:             u.Avatar,
+		Verified:           u.Verified,
+		Activo:             u.Activo,
+		MustChangePassword: u.MustChangePassword,
+		Created:            u.Created,
 	}
 }

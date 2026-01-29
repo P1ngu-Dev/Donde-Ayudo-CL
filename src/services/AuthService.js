@@ -280,6 +280,23 @@ class AuthService {
   }
 
   /**
+   * Verifica si el usuario debe cambiar su contraseña
+   */
+  mustChangePassword() {
+    return this.user?.must_change_password === true;
+  }
+
+  /**
+   * Actualiza el flag de cambio de contraseña localmente
+   */
+  clearMustChangePassword() {
+    if (this.user) {
+      this.user.must_change_password = false;
+      this.saveUser(this.user);
+    }
+  }
+
+  /**
    * Redirige a login si no está autenticado
    */
   requireAuth() {

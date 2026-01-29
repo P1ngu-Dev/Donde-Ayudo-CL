@@ -56,6 +56,8 @@ func main() {
 		r.Use(mw.RequireAuth(cfg))
 		r.Get("/api/auth/me", handlers.Me)
 		r.Post("/api/auth/logout", handlers.Logout)
+		r.Post("/api/auth/change-password", handlers.ChangePassword)
+		r.Post("/api/auth/confirm-password", handlers.ConfirmPassword)
 	})
 
 	// ==================== ADMIN (Requiere autenticación) ====================
@@ -85,6 +87,12 @@ func main() {
 
 		// POST /api/admin/users - Crear usuario (superadmin)
 		r.With(mw.RequireRole("superadmin")).Post("/users", handlers.CreateUser)
+
+		// PATCH /api/admin/users/:id/rol - Cambiar rol de usuario (superadmin)
+		r.With(mw.RequireRole("superadmin")).Patch("/users/{id}/rol", handlers.UpdateUserRol)
+
+		// PATCH /api/admin/users/:id/toggle-active - Activar/desactivar usuario (superadmin)
+		r.With(mw.RequireRole("superadmin")).Patch("/users/{id}/toggle-active", handlers.ToggleUserActive)
 	})
 
 	// ==================== FRONTEND ESTÁTICO ====================

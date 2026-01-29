@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS users (
     emailVisibility BOOLEAN DEFAULT FALSE,
     verified BOOLEAN DEFAULT TRUE,
     activo BOOLEAN DEFAULT TRUE,
+    must_change_password BOOLEAN DEFAULT FALSE,  -- Para contraseñas temporales
     tokenKey TEXT,  -- NULLABLE
     
     -- Timestamps
@@ -118,7 +119,7 @@ INSERT INTO users (id, email, password, name, rol, activo, verified, emailVisibi
 VALUES (
     'admin-' || encode(gen_random_bytes(16), 'hex'),
     'admin@dondeayudo.cl',
-    '$2a$10$rT8YvV9w7JqL3H8KZ9xVh.xE5J5KZ8YvV9w7JqL3H8KZ9xVh.xE5J',
+    '$2a$10$Xy.a4sLzH4J4521F.2/XWevzOiLtJaeVtrEAaE8gWsI7wxKZDUdIq',
     'Administrador',
     'superadmin',
     true,

@@ -5,6 +5,8 @@
 
 import { authService, ROLES } from './services/AuthService.js';
 import { adminService } from './services/AdminService.js';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
 // Debug helpers (browser console)
 window.authService = authService;
@@ -16,12 +18,19 @@ let puntosPage = 1;
 let puntosFilters = {};
 let currentEditId = null;
 let confirmCallback = null;
+let editMap = null;
+let editMarker = null;
+let tempPassword = null;
 
 // ==================== INITIALIZATION ====================
 document.addEventListener('DOMContentLoaded', () => {
   // Verificar si ya hay sesión
   if (authService.isAuthenticated()) {
-    showDashboard();
+    checkPasswordChange().then(needsChange => {
+      if (!needsChange) {
+        showDashboard();
+      }
+    });
   } else {
     showLogin();
   }
@@ -33,7 +42,70 @@ document.addEventListener('DOMContentLoaded', () => {
   setupModals();
   setupFilters();
   setupMobileMenu();
+  setupCategoriaChange();
+  setupUserModals();
+  setupChangePasswordForm();
 });
+
+// ==================== PASSWORD CHANGE ====================
+async function checkPasswordChange() {
+  const user = authService.getCurrentUser();
+  if (user && user.must_change_password) {
+    showChangePasswordModal();
+    return true;
+  }
+  return false;
+}
+
+function showChangePasswordModal() {
+  const modal = document.getElementById('modal-change-password');
+  if (modal) modal.classList.add('show');
+}
+
+function setupChangePasswordForm() {
+  const form = document.getElementById('change-password-form');
+  if (!form) return;
+  
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const keepTemp = document.getElementById('keep-temp-password')?.checked;
+    
+    if (keepTemp) {
+      try {
+        await adminService.confirmTempPassword();
+        document.getElementById('modal-change-password').classList.remove('show');
+        showDashboard();
+        showToast('Contraseña confirmada', 'success');
+      } catch (error) {
+        showToast('Error al confirmar contraseña', 'error');
+      }
+      return;
+    }
+    
+    const newPassword = document.getElementById('new-password').value;
+    const confirmPassword = document.getElementById('confirm-password').value;
+    
+    if (newPassword !== confirmPassword) {
+      showToast('Las contraseñas no coinciden', 'error');
+      return;
+    }
+    
+    if (newPassword.length < 8) {
+      showToast('La contraseña debe tener al menos 8 caracteres', 'error');
+      return;
+    }
+    
+    try {
+      await adminService.changePassword(newPassword);
+      document.getElementById('modal-change-password').classList.remove('show');
+      showDashboard();
+      showToast('Contraseña actualizada correctamente', 'success');
+    } catch (error) {
+      showToast('Error al cambiar contraseña: ' + error.message, 'error');
+    }
+  });
+}
 
 // ==================== LOGIN ====================
 function showLogin() {
@@ -83,8 +155,13 @@ function setupLoginForm() {
     spinner.style.display = 'none';
     
     if (result.success) {
-      showDashboard();
-      showToast('¡Bienvenido!', 'success');
+      // Verificar si necesita cambiar contraseña
+      if (result.user && result.user.must_change_password) {
+        showChangePasswordModal();
+      } else {
+        showDashboard();
+        showToast('¡Bienvenido!', 'success');
+      }
     } else {
       alert.classList.add('show');
       alertText.textContent = result.error;
@@ -180,7 +257,7 @@ async function loadDashboard() {
     }
     
     // Load recent puntos en revisión
-    const result = await adminService.getAllPuntos(1, 5, { estado: 'revision' });
+    const result = await adminService.getAllPuntos(1, 5, { estado: 'pendiente' });
     renderRecentPuntos(result.items);
     
   } catch (error) {
@@ -211,8 +288,8 @@ function renderRecentPuntos(puntos) {
     <tr>
       <td class="truncate">${escapeHtml(p.nombre)}</td>
       <td>${escapeHtml(p.ciudad || '-')}</td>
-      <td><span class="category-badge ${p.categoria}">${p.categoria}</span></td>
-      <td><span class="status-badge ${p.estado}">${p.estado}</span></td>
+      <td><span class="category-badge ${p.categoria}">${getCategoriaLabel(p.categoria)}</span></td>
+      <td><span class="status-badge ${p.estado}">${getEstadoLabel(p.estado)}</span></td>
       <td>${formatDate(p.created)}</td>
       <td class="actions-cell">
         <button class="btn-action btn-verify" title="Verificar" onclick="window.adminActions.verify('${p.id}')">
@@ -229,6 +306,30 @@ function renderRecentPuntos(puntos) {
       </td>
     </tr>
   `).join('');
+}
+
+// Helper para labels de categoría
+function getCategoriaLabel(categoria) {
+  const labels = {
+    'acopio': 'Acopio',
+    'albergue': 'Albergue',
+    'hidratacion': 'Hidratación',
+    'sos': 'SOS'
+  };
+  return labels[categoria] || categoria;
+}
+
+// Helper para labels de estado
+function getEstadoLabel(estado) {
+  const labels = {
+    'activo': 'Activo',
+    'pendiente': 'Pendiente',
+    'inactivo': 'Inactivo',
+    'cerrado': 'Cerrado',
+    'publicado': 'Publicado',
+    'revision': 'En Revisión'
+  };
+  return labels[estado] || estado;
 }
 
 // ==================== PUNTOS ====================
@@ -261,8 +362,8 @@ function renderPuntosTable(puntos) {
     <tr>
       <td class="truncate">${escapeHtml(p.nombre)}</td>
       <td>${escapeHtml(p.ciudad || '-')}</td>
-      <td><span class="category-badge ${p.categoria}">${p.categoria}</span></td>
-      <td><span class="status-badge ${p.estado}">${p.estado}</span></td>
+      <td><span class="category-badge ${p.categoria}">${getCategoriaLabel(p.categoria)}</span></td>
+      <td><span class="status-badge ${p.estado}">${getEstadoLabel(p.estado)}</span></td>
       <td class="truncate">${escapeHtml(p.entidad_verificadora || '-')}</td>
       <td class="actions-cell">
         <button class="btn-action btn-view" title="Ver" onclick="window.adminActions.view('${p.id}')">
@@ -277,7 +378,7 @@ function renderPuntosTable(puntos) {
             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
           </svg>
         </button>
-        ${p.estado === 'revision' ? `
+        ${p.estado === 'pendiente' || p.estado === 'revision' ? `
           <button class="btn-action btn-verify" title="Verificar" onclick="window.adminActions.verify('${p.id}')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="20 6 9 17 4 12"/>
@@ -450,7 +551,7 @@ function renderUsuariosTable(usuarios) {
         </select>
       </td>
       <td>
-        <span class="status-badge ${u.activo !== false ? 'publicado' : 'rechazado'}">
+        <span class="status-badge ${u.activo !== false ? 'activo' : 'cerrado'}">
           ${u.activo !== false ? 'Activo' : 'Inactivo'}
         </span>
       </td>
@@ -471,6 +572,72 @@ function renderUsuariosTable(usuarios) {
       </td>
     </tr>
   `).join('');
+}
+
+// ==================== USER MODAL ====================
+function setupUserModals() {
+  const btnCreate = document.getElementById('btn-create-user');
+  const modal = document.getElementById('modal-create-user');
+  const form = document.getElementById('create-user-form');
+  const closeBtn = document.getElementById('modal-user-close');
+  const cancelBtn = document.getElementById('modal-user-cancel');
+  const copyBtn = document.getElementById('btn-copy-password');
+  
+  if (btnCreate) {
+    btnCreate.addEventListener('click', () => {
+      // Reset form
+      if (form) form.reset();
+      tempPassword = null;
+      const tempText = document.getElementById('temp-password-text');
+      if (tempText) tempText.textContent = 'Se generará al crear';
+      if (copyBtn) copyBtn.style.display = 'none';
+      if (modal) modal.classList.add('show');
+    });
+  }
+  
+  if (closeBtn) closeBtn.addEventListener('click', () => modal?.classList.remove('show'));
+  if (cancelBtn) cancelBtn.addEventListener('click', () => modal?.classList.remove('show'));
+  
+  if (copyBtn) {
+    copyBtn.addEventListener('click', () => {
+      if (tempPassword) {
+        navigator.clipboard.writeText(tempPassword);
+        showToast('Contraseña copiada', 'success');
+      }
+    });
+  }
+  
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const userData = {
+        email: document.getElementById('new-user-email').value,
+        name: document.getElementById('new-user-name').value,
+        organizacion: document.getElementById('new-user-organizacion').value,
+        rol: document.getElementById('new-user-rol').value
+      };
+      
+      try {
+        const result = await adminService.createUsuarioWithTempPassword(userData);
+        tempPassword = result.temp_password;
+        
+        // Mostrar contraseña temporal
+        const tempText = document.getElementById('temp-password-text');
+        if (tempText) tempText.textContent = tempPassword;
+        if (copyBtn) copyBtn.style.display = 'block';
+        
+        showToast('Usuario creado. ¡Copia la contraseña temporal!', 'success');
+        
+        // Recargar lista
+        loadUsuarios();
+        
+        // No cerrar modal para que copien la contraseña
+      } catch (error) {
+        showToast('Error creando usuario: ' + error.message, 'error');
+      }
+    });
+  }
 }
 
 // ==================== MODALS ====================
@@ -510,49 +677,234 @@ function setupModals() {
     closeViewModal();
     openEditModal(id);
   });
+  
+  // Mi ubicación button
+  const btnMyLocation = document.getElementById('btn-use-my-location');
+  if (btnMyLocation) {
+    btnMyLocation.addEventListener('click', useMyLocation);
+  }
+}
+
+function setupCategoriaChange() {
+  const categoriaSelect = document.getElementById('edit-categoria');
+  if (categoriaSelect) {
+    categoriaSelect.addEventListener('change', (e) => {
+      const isSOS = e.target.value === 'sos';
+      const sosSection = document.getElementById('section-sos');
+      if (sosSection) sosSection.style.display = isSOS ? 'block' : 'none';
+    });
+  }
+}
+
+// ==================== MAP FUNCTIONS ====================
+function initEditMap() {
+  if (editMap) {
+    editMap.remove();
+  }
+  
+  // Coordenadas por defecto (Chile central)
+  const defaultLat = -33.45;
+  const defaultLng = -70.65;
+  
+  editMap = L.map('edit-map').setView([defaultLat, defaultLng], 10);
+  
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap'
+  }).addTo(editMap);
+  
+  // Click en mapa para colocar marcador
+  editMap.on('click', (e) => {
+    const { lat, lng } = e.latlng;
+    setMapMarker(lat, lng);
+    document.getElementById('edit-latitud').value = lat.toFixed(6);
+    document.getElementById('edit-longitud').value = lng.toFixed(6);
+  });
+  
+  // Actualizar mapa cuando cambien los inputs
+  document.getElementById('edit-latitud').addEventListener('change', updateMapFromInputs);
+  document.getElementById('edit-longitud').addEventListener('change', updateMapFromInputs);
+}
+
+function setMapMarker(lat, lng) {
+  if (editMarker) {
+    editMarker.setLatLng([lat, lng]);
+  } else {
+    editMarker = L.marker([lat, lng], { draggable: true }).addTo(editMap);
+    
+    editMarker.on('dragend', () => {
+      const pos = editMarker.getLatLng();
+      document.getElementById('edit-latitud').value = pos.lat.toFixed(6);
+      document.getElementById('edit-longitud').value = pos.lng.toFixed(6);
+    });
+  }
+  editMap.setView([lat, lng], 15);
+}
+
+function updateMapFromInputs() {
+  const lat = parseFloat(document.getElementById('edit-latitud').value);
+  const lng = parseFloat(document.getElementById('edit-longitud').value);
+  
+  if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+    setMapMarker(lat, lng);
+  }
+}
+
+function useMyLocation() {
+  if (!navigator.geolocation) {
+    showToast('Tu navegador no soporta geolocalización', 'error');
+    return;
+  }
+  
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      const { latitude, longitude } = position.coords;
+      document.getElementById('edit-latitud').value = latitude.toFixed(6);
+      document.getElementById('edit-longitud').value = longitude.toFixed(6);
+      setMapMarker(latitude, longitude);
+      showToast('Ubicación obtenida', 'success');
+    },
+    (error) => {
+      showToast('No se pudo obtener tu ubicación', 'error');
+    }
+  );
 }
 
 async function openEditModal(id) {
   currentEditId = id;
   const modal = document.getElementById('modal-edit');
   const title = document.getElementById('modal-title');
+  const user = authService.getCurrentUser();
   
   // Reset form
   document.getElementById('edit-form').reset();
+  
+  // Reset checkboxes de tags
+  document.querySelectorAll('#necesidades-tags input[type="checkbox"]').forEach(cb => cb.checked = false);
+  
+  // Mostrar/ocultar sección SOS
+  const sosSection = document.getElementById('section-sos');
+  if (sosSection) sosSection.style.display = 'none';
+  
+  // Establecer entidad verificadora según la organización del usuario
+  const entidadInput = document.getElementById('edit-entidad-verificadora');
+  if (entidadInput) {
+    if (user && user.organizacion) {
+      entidadInput.value = user.organizacion;
+    } else if (user) {
+      entidadInput.value = user.name || user.email;
+    }
+  }
   
   if (id) {
     title.textContent = 'Editar Punto';
     try {
       const punto = await adminService.getPunto(id);
       
+      // Llenar campos básicos
       document.getElementById('edit-id').value = punto.id;
       document.getElementById('edit-nombre').value = punto.nombre || '';
       document.getElementById('edit-ciudad').value = punto.ciudad || '';
       document.getElementById('edit-direccion').value = punto.direccion || '';
       document.getElementById('edit-latitud').value = punto.latitud || '';
       document.getElementById('edit-longitud').value = punto.longitud || '';
-      document.getElementById('edit-categoria').value = punto.categoria || 'informacion';
+      document.getElementById('edit-categoria').value = punto.categoria || '';
       document.getElementById('edit-subtipo').value = punto.subtipo || '';
-      document.getElementById('edit-estado').value = punto.estado || 'revision';
+      document.getElementById('edit-estado').value = punto.estado || 'pendiente';
+      
+      const capacidadSelect = document.getElementById('edit-capacidad-estado');
+      if (capacidadSelect) capacidadSelect.value = punto.capacidad_estado || '';
+      
+      const contactoNombre = document.getElementById('edit-contacto-nombre');
+      if (contactoNombre) contactoNombre.value = punto.contacto_nombre || '';
+      
       document.getElementById('edit-contacto').value = punto.contacto_principal || '';
       document.getElementById('edit-horario').value = punto.horario || '';
       document.getElementById('edit-necesidades').value = punto.necesidades_raw || '';
       document.getElementById('edit-notas').value = punto.notas_internas || '';
+      
+      if (entidadInput) entidadInput.value = punto.entidad_verificadora || '';
+      
+      const fechaVerif = document.getElementById('edit-fecha-verificacion');
+      if (fechaVerif) fechaVerif.value = punto.fecha_verificacion ? formatDate(punto.fecha_verificacion) : '';
+      
+      // Campos SOS
+      const nombreZona = document.getElementById('edit-nombre-zona');
+      if (nombreZona) nombreZona.value = punto.nombre_zona || '';
+      
+      const urgencia = document.getElementById('edit-urgencia');
+      if (urgencia) urgencia.value = punto.urgencia || '';
+      
+      const habitado = document.getElementById('edit-habitado');
+      if (habitado) habitado.checked = punto.habitado_actualmente || false;
+      
+      const cantidadNinos = document.getElementById('edit-cantidad-ninos');
+      if (cantidadNinos) cantidadNinos.value = punto.cantidad_ninos || 0;
+      
+      const cantidadAdultos = document.getElementById('edit-cantidad-adultos');
+      if (cantidadAdultos) cantidadAdultos.value = punto.cantidad_adultos || 0;
+      
+      const cantidadAncianos = document.getElementById('edit-cantidad-ancianos');
+      if (cantidadAncianos) cantidadAncianos.value = punto.cantidad_ancianos || 0;
+      
+      const animales = document.getElementById('edit-animales');
+      if (animales) animales.value = punto.animales_detalle || '';
+      
+      const riesgoAsbesto = document.getElementById('edit-riesgo-asbesto');
+      if (riesgoAsbesto) riesgoAsbesto.checked = punto.riesgo_asbesto || false;
+      
+      const requiereVoluntarios = document.getElementById('edit-requiere-voluntarios');
+      if (requiereVoluntarios) requiereVoluntarios.checked = punto.requiere_voluntarios || false;
+      
+      const logistica = document.getElementById('edit-logistica');
+      if (logistica) logistica.value = punto.logistica_llegada || '';
+      
+      // Tags de necesidades
+      if (punto.necesidades_tags && Array.isArray(punto.necesidades_tags)) {
+        punto.necesidades_tags.forEach(tag => {
+          const checkbox = document.querySelector(`#necesidades-tags input[value="${tag}"]`);
+          if (checkbox) checkbox.checked = true;
+        });
+      }
+      
+      // Mostrar sección SOS si aplica
+      if (punto.categoria === 'sos' && sosSection) {
+        sosSection.style.display = 'block';
+      }
+      
     } catch (error) {
       showToast('Error cargando punto', 'error');
       return;
     }
   } else {
     title.textContent = 'Agregar Nuevo Punto';
-    document.getElementById('edit-estado').value = 'publicado';
+    document.getElementById('edit-estado').value = 'activo';
   }
   
   modal.classList.add('show');
+  
+  // Inicializar mapa después de que el modal sea visible
+  setTimeout(() => {
+    initEditMap();
+    
+    // Si hay coordenadas, centrar el mapa
+    const lat = parseFloat(document.getElementById('edit-latitud').value);
+    const lng = parseFloat(document.getElementById('edit-longitud').value);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      setMapMarker(lat, lng);
+    }
+  }, 100);
 }
 
 function closeEditModal() {
   document.getElementById('modal-edit').classList.remove('show');
   currentEditId = null;
+  
+  // Limpiar mapa
+  if (editMap) {
+    editMap.remove();
+    editMap = null;
+  }
+  editMarker = null;
 }
 
 async function openViewModal(id) {
@@ -561,6 +913,40 @@ async function openViewModal(id) {
   
   try {
     const punto = await adminService.getPunto(id);
+    
+    // Construir sección SOS si aplica
+    let sosHtml = '';
+    if (punto.categoria === 'sos') {
+      sosHtml = `
+        <div class="view-section">
+          <h4 style="margin: 0 0 0.5rem; color: #DC2626;">Información SOS</h4>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+            <div><strong>Zona:</strong> ${escapeHtml(punto.nombre_zona || '-')}</div>
+            <div><strong>Urgencia:</strong> <span class="urgencia-${punto.urgencia}">${punto.urgencia || '-'}</span></div>
+            <div><strong>Habitado:</strong> ${punto.habitado_actualmente ? 'Sí' : 'No'}</div>
+            <div><strong>Niños:</strong> ${punto.cantidad_ninos || 0}</div>
+            <div><strong>Adultos:</strong> ${punto.cantidad_adultos || 0}</div>
+            <div><strong>Adultos mayores:</strong> ${punto.cantidad_ancianos || 0}</div>
+          </div>
+          ${punto.animales_detalle ? `<div><strong>Animales:</strong> ${escapeHtml(punto.animales_detalle)}</div>` : ''}
+          <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+            ${punto.riesgo_asbesto ? '<span class="estado-tag pendiente">⚠️ Riesgo Asbesto</span>' : ''}
+            ${punto.requiere_voluntarios ? '<span class="estado-tag activo">👷 Requiere Voluntarios</span>' : ''}
+          </div>
+          ${punto.logistica_llegada ? `<div style="margin-top: 0.5rem;"><strong>Logística:</strong> ${escapeHtml(punto.logistica_llegada)}</div>` : ''}
+        </div>
+      `;
+    }
+    
+    // Construir tags de necesidades
+    let tagsHtml = '';
+    if (punto.necesidades_tags && punto.necesidades_tags.length > 0) {
+      tagsHtml = `
+        <div style="display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.5rem;">
+          ${punto.necesidades_tags.map(tag => `<span class="necesidad-tag">${escapeHtml(tag)}</span>`).join('')}
+        </div>
+      `;
+    }
     
     content.innerHTML = `
       <div style="display: grid; gap: 1rem;">
@@ -572,7 +958,7 @@ async function openViewModal(id) {
             <strong>Ciudad:</strong> ${escapeHtml(punto.ciudad || '-')}
           </div>
           <div>
-            <strong>Categoría:</strong> <span class="category-badge ${punto.categoria}">${punto.categoria}</span>
+            <strong>Categoría:</strong> <span class="category-badge ${punto.categoria}">${getCategoriaLabel(punto.categoria)}</span>
           </div>
         </div>
         <div>
@@ -588,29 +974,42 @@ async function openViewModal(id) {
         </div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
           <div>
-            <strong>Estado:</strong> <span class="status-badge ${punto.estado}">${punto.estado}</span>
+            <strong>Estado:</strong> <span class="estado-tag ${punto.estado}">${getEstadoLabel(punto.estado)}</span>
           </div>
           <div>
             <strong>Subtipo:</strong> ${escapeHtml(punto.subtipo || '-')}
           </div>
         </div>
-        <div>
-          <strong>Contacto:</strong> ${escapeHtml(punto.contacto_principal || '-')}
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div>
+            <strong>Contacto:</strong> ${escapeHtml(punto.contacto_nombre || '-')}
+          </div>
+          <div>
+            <strong>Teléfono:</strong> ${escapeHtml(punto.contacto_principal || '-')}
+          </div>
         </div>
-        <div>
-          <strong>Horario:</strong> ${escapeHtml(punto.horario || '-')}
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div>
+            <strong>Horario:</strong> ${escapeHtml(punto.horario || '-')}
+          </div>
+          <div>
+            <strong>Capacidad:</strong> ${escapeHtml(punto.capacidad_estado || '-')}
+          </div>
         </div>
         <div>
           <strong>Necesidades/Info:</strong><br>
           <p style="margin: 0.5rem 0; padding: 0.75rem; background: var(--gray-50); border-radius: 0.375rem;">
             ${escapeHtml(punto.necesidades_raw || 'Sin información')}
           </p>
+          ${tagsHtml}
         </div>
-        <div>
-          <strong>Verificador:</strong> ${escapeHtml(punto.entidad_verificadora || '-')}
-        </div>
-        <div>
-          <strong>Fecha verificación:</strong> ${punto.fecha_verificacion ? formatDate(punto.fecha_verificacion) : '-'}
+        ${sosHtml}
+        <div class="view-section" style="background: #F0FDF4; padding: 0.75rem; border-radius: 0.375rem;">
+          <h4 style="margin: 0 0 0.5rem; color: #166534;">Verificación</h4>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+            <div><strong>Verificador:</strong> ${escapeHtml(punto.entidad_verificadora || '-')}</div>
+            <div><strong>Fecha:</strong> ${punto.fecha_verificacion ? formatDate(punto.fecha_verificacion) : '-'}</div>
+          </div>
         </div>
         ${punto.notas_internas ? `
           <div>
@@ -649,20 +1048,48 @@ function closeConfirmModal() {
 async function handleEditSubmit(e) {
   e.preventDefault();
   
+  const user = authService.getCurrentUser();
+  
+  // Recopilar tags de necesidades seleccionados
+  const necesidadesTags = [];
+  document.querySelectorAll('#necesidades-tags input[type="checkbox"]:checked').forEach(cb => {
+    necesidadesTags.push(cb.value);
+  });
+  
+  const categoria = document.getElementById('edit-categoria').value;
+  
   const data = {
     nombre: document.getElementById('edit-nombre').value,
     ciudad: document.getElementById('edit-ciudad').value,
     direccion: document.getElementById('edit-direccion').value,
     latitud: parseFloat(document.getElementById('edit-latitud').value),
     longitud: parseFloat(document.getElementById('edit-longitud').value),
-    categoria: document.getElementById('edit-categoria').value,
+    categoria: categoria,
     subtipo: document.getElementById('edit-subtipo').value,
     estado: document.getElementById('edit-estado').value,
+    contacto_nombre: document.getElementById('edit-contacto-nombre')?.value || '',
     contacto_principal: document.getElementById('edit-contacto').value,
     horario: document.getElementById('edit-horario').value,
+    capacidad_estado: document.getElementById('edit-capacidad-estado')?.value || '',
     necesidades_raw: document.getElementById('edit-necesidades').value,
-    notas_internas: document.getElementById('edit-notas').value
+    necesidades_tags: necesidadesTags,
+    notas_internas: document.getElementById('edit-notas').value,
+    entidad_verificadora: document.getElementById('edit-entidad-verificadora')?.value || ''
   };
+  
+  // Campos SOS solo si la categoría es SOS
+  if (categoria === 'sos') {
+    data.nombre_zona = document.getElementById('edit-nombre-zona')?.value || '';
+    data.urgencia = document.getElementById('edit-urgencia')?.value || '';
+    data.habitado_actualmente = document.getElementById('edit-habitado')?.checked || false;
+    data.cantidad_ninos = parseInt(document.getElementById('edit-cantidad-ninos')?.value) || 0;
+    data.cantidad_adultos = parseInt(document.getElementById('edit-cantidad-adultos')?.value) || 0;
+    data.cantidad_ancianos = parseInt(document.getElementById('edit-cantidad-ancianos')?.value) || 0;
+    data.animales_detalle = document.getElementById('edit-animales')?.value || '';
+    data.riesgo_asbesto = document.getElementById('edit-riesgo-asbesto')?.checked || false;
+    data.requiere_voluntarios = document.getElementById('edit-requiere-voluntarios')?.checked || false;
+    data.logistica_llegada = document.getElementById('edit-logistica')?.value || '';
+  }
   
   try {
     if (currentEditId) {
@@ -699,13 +1126,16 @@ window.adminActions = {
   },
   
   async verify(id) {
+    const user = authService.getCurrentUser();
+    const entidadVerificadora = user?.organizacion || user?.name || user?.email || 'Admin';
+    
     showConfirmModal(
       'Verificar Punto',
-      '¿Estás seguro de que quieres verificar este punto y publicarlo?',
+      '¿Estás seguro de que quieres verificar este punto y activarlo?',
       async () => {
         try {
-          await adminService.verificarPunto(id);
-          showToast('Punto verificado y publicado', 'success');
+          await adminService.verificarPunto(id, entidadVerificadora);
+          showToast('Punto verificado y activado', 'success');
           
           if (currentView === 'puntos') {
             loadPuntos();

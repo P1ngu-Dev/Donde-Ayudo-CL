@@ -135,10 +135,15 @@ class AdminService {
   }
 
   /**
-   * Verifica un punto (cambia estado a publicado)
+   * Verifica un punto (cambia estado a activo y registra verificador)
    */
-  async verificarPunto(id, notasInternas = '') {
-    return await this.changeEstado(id, 'publicado');
+  async verificarPunto(id, entidadVerificadora = '') {
+    const data = {
+      estado: 'activo',
+      entidad_verificadora: entidadVerificadora,
+      fecha_verificacion: new Date().toISOString()
+    };
+    return await this.updatePunto(id, data);
   }
 
   /**
@@ -182,20 +187,20 @@ class AdminService {
     const result = await this.getAllPuntos(1, 5000);
     const puntos = result.items;
     
-    // Calcular stats
+    // Calcular stats con nuevos estados
     const stats = {
       total: puntos.length,
-      publicados: puntos.filter(p => p.estado === 'publicado').length,
-      enRevision: puntos.filter(p => p.estado === 'revision').length,
-      ocultos: puntos.filter(p => p.estado === 'oculto').length,
-      rechazados: puntos.filter(p => p.estado === 'rechazado').length,
+      activos: puntos.filter(p => p.estado === 'activo').length,
+      pendientes: puntos.filter(p => p.estado === 'pendiente').length,
+      inactivos: puntos.filter(p => p.estado === 'inactivo').length,
+      cerrados: puntos.filter(p => p.estado === 'cerrado').length,
       solicitudesPendientes: 0, // TODO: Implementar cuando exista endpoint
       
-      // Por categoría
+      // Por categoría con nuevos valores
       porCategoria: {
-        informacion: puntos.filter(p => p.categoria === 'informacion').length,
         acopio: puntos.filter(p => p.categoria === 'acopio').length,
-        solicitud_ayuda: puntos.filter(p => p.categoria === 'solicitud_ayuda').length,
+        albergue: puntos.filter(p => p.categoria === 'albergue').length,
+        hidratacion: puntos.filter(p => p.categoria === 'hidratacion').length,
         sos: puntos.filter(p => p.categoria === 'sos').length
       },
       
@@ -251,6 +256,34 @@ class AdminService {
   }
 
   /**
+   * Crea un nuevo usuario con contraseña temporal (solo superadmin)
+   */
+  async createUsuarioWithTempPassword(userData) {
+    if (!authService.isSuperAdmin()) {
+      throw new Error('No tienes permisos para crear usuarios');
+    }
+    
+    // Añadir flag para indicar que debe cambiar contraseña
+    const dataToSend = {
+      ...userData,
+      must_change_password: true
+    };
+    
+    const response = await fetch(`${API_URL}/api/admin/users`, {
+      method: 'POST',
+      headers: authService.getAuthHeaders(),
+      body: JSON.stringify(dataToSend)
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Error creando usuario');
+    }
+    
+    return await response.json();
+  }
+
+  /**
    * Crea un nuevo usuario (solo superadmin)
    */
   async createUsuario(userData) {
@@ -272,29 +305,87 @@ class AdminService {
   }
 
   /**
+   * Cambiar contraseña del usuario actual
+   */
+  async changePassword(currentPassword, newPassword) {
+    const response = await fetch(`${API_URL}/api/auth/change-password`, {
+      method: 'POST',
+      headers: authService.getAuthHeaders(),
+      body: JSON.stringify({
+        current_password: currentPassword,
+        new_password: newPassword
+      })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Error cambiando contraseña');
+    }
+    
+    return await response.json();
+  }
+
+  /**
+   * Confirmar contraseña temporal (primer inicio de sesión)
+   */
+  async confirmTempPassword(newPassword, keepTempPassword = false) {
+    const response = await fetch(`${API_URL}/api/auth/confirm-password`, {
+      method: 'POST',
+      headers: authService.getAuthHeaders(),
+      body: JSON.stringify({
+        new_password: newPassword,
+        keep_temp_password: keepTempPassword
+      })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Error confirmando contraseña');
+    }
+    
+    return await response.json();
+  }
+
+  /**
    * Actualiza rol de un usuario (solo superadmin)
-   * Nota: Funcionalidad pendiente en backend
    */
   async updateUsuarioRol(userId, rol) {
     if (!authService.isSuperAdmin()) {
       throw new Error('No tienes permisos para modificar usuarios');
     }
     
-    console.warn('⚠️ updateUsuarioRol: Funcionalidad pendiente de implementar en backend');
-    return null;
+    const response = await fetch(`${API_URL}/api/admin/users/${userId}/rol`, {
+      method: 'PATCH',
+      headers: authService.getAuthHeaders(),
+      body: JSON.stringify({ rol })
+    });
+    
+    if (!response.ok) {
+      throw new Error('Error actualizando rol de usuario');
+    }
+    
+    return await response.json();
   }
 
   /**
    * Activa/desactiva un usuario (solo superadmin)
-   * Nota: Funcionalidad pendiente en backend
    */
   async toggleUsuarioActivo(userId, activo) {
     if (!authService.isSuperAdmin()) {
       throw new Error('No tienes permisos para modificar usuarios');
     }
     
-    console.warn('⚠️ toggleUsuarioActivo: Funcionalidad pendiente de implementar en backend');
-    return null;
+    const response = await fetch(`${API_URL}/api/admin/users/${userId}/toggle-active`, {
+      method: 'PATCH',
+      headers: authService.getAuthHeaders(),
+      body: JSON.stringify({ activo })
+    });
+    
+    if (!response.ok) {
+      throw new Error('Error cambiando estado del usuario');
+    }
+    
+    return await response.json();
   }
 }
 
