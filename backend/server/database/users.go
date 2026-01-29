@@ -110,7 +110,7 @@ func GetUsers() ([]models.User, error) {
 	for rows.Next() {
 		user := models.User{}
 		var organizacion, avatar sql.NullString
-		
+
 		err := rows.Scan(
 			&user.ID, &user.Email, &user.Name, &user.Rol,
 			&organizacion, &avatar, &user.EmailVisibility,
@@ -119,14 +119,14 @@ func GetUsers() ([]models.User, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error escaneando usuario: %w", err)
 		}
-		
+
 		if organizacion.Valid {
 			user.Organizacion = organizacion.String
 		}
 		if avatar.Valid {
 			user.Avatar = avatar.String
 		}
-		
+
 		users = append(users, user)
 	}
 
