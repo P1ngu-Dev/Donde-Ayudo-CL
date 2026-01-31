@@ -280,6 +280,14 @@ class AuthService {
   }
 
   /**
+   * Verifica si es admin (incluye superadmin)
+   */
+  isAdmin() {
+    const role = this.getRole();
+    return role === 'admin' || role === 'superadmin';
+  }
+
+  /**
    * Verifica si el usuario debe cambiar su contraseña
    */
   mustChangePassword() {

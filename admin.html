@@ -1117,9 +1117,137 @@
     #edit-map {
       z-index: 0;
     }
-    
+
     #edit-map .leaflet-control-container {
       z-index: 100;
+    }
+
+    /* Import CSV Section */
+    .import-dropzone {
+      border: 2px dashed var(--gray-300);
+      border-radius: 0.75rem;
+      padding: 3rem 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: var(--gray-50);
+    }
+
+    .import-dropzone:hover,
+    .import-dropzone.dragover {
+      border-color: var(--primary);
+      background: #EFF6FF;
+    }
+
+    .import-dropzone svg {
+      margin: 0 auto 1rem;
+      color: var(--gray-400);
+    }
+
+    .import-dropzone.dragover svg {
+      color: var(--primary);
+    }
+
+    .import-summary {
+      display: flex;
+      gap: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .summary-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .summary-label {
+      color: var(--gray-600);
+      font-size: 0.875rem;
+    }
+
+    .summary-value {
+      font-weight: 700;
+      font-size: 1.125rem;
+    }
+
+    .summary-value.success {
+      color: var(--success);
+    }
+
+    .summary-value.danger {
+      color: var(--danger);
+    }
+
+    .preview-count {
+      font-size: 0.875rem;
+      color: var(--gray-500);
+      margin-left: auto;
+    }
+
+    .import-result {
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .result-icon {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.5rem;
+    }
+
+    .result-icon.success {
+      background: #D1FAE5;
+      color: var(--success);
+    }
+
+    .result-icon.error {
+      background: #FEE2E2;
+      color: var(--danger);
+    }
+
+    .import-result h4 {
+      margin: 0 0 0.5rem;
+      font-size: 1.25rem;
+      color: var(--gray-800);
+    }
+
+    .import-result p {
+      color: var(--gray-600);
+      margin: 0 0 1.5rem;
+    }
+
+    .result-actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    /* Preview table striped rows */
+    #csv-preview-body tr:nth-child(even) {
+      background: var(--gray-50);
+    }
+
+    #csv-preview-body tr.error-row {
+      background: #FEF2F2;
+    }
+
+    #csv-preview-body td {
+      font-size: 0.8rem;
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    #csv-preview-header th {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      white-space: nowrap;
     }
   </style>
   
@@ -1219,6 +1347,12 @@
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
             </svg>
             Usuarios
+          </button>
+          <button class="nav-item" data-view="importar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            Importar CSV
           </button>
         </div>
         
@@ -1358,17 +1492,24 @@
             <div class="filters-bar">
               <select id="filter-estado" class="filter-select">
                 <option value="">Todos los estados</option>
-                <option value="publicado">Publicado</option>
-                <option value="revision">En Revisión</option>
-                <option value="oculto">Oculto</option>
-                <option value="rechazado">Rechazado</option>
+                <option value="activo">Activo</option>
+                <option value="pendiente">Pendiente</option>
+                <option value="inactivo">Inactivo</option>
+                <option value="cerrado">Cerrado</option>
               </select>
               <select id="filter-categoria" class="filter-select">
                 <option value="">Todas las categorías</option>
-                <option value="informacion">Información</option>
                 <option value="acopio">Acopio</option>
-                <option value="solicitud_ayuda">Solicitud de Ayuda</option>
+                <option value="albergue">Albergue</option>
+                <option value="hidratacion">Hidratación</option>
                 <option value="sos">SOS</option>
+              </select>
+              <select id="filter-urgencia" class="filter-select">
+                <option value="">Todas las urgencias</option>
+                <option value="critica">🔴 Crítica</option>
+                <option value="alta">🟠 Alta</option>
+                <option value="media">🟡 Media</option>
+                <option value="baja">🟢 Baja</option>
               </select>
               <input type="text" id="filter-search" class="filter-input" placeholder="Buscar por nombre, ciudad...">
             </div>
@@ -1479,6 +1620,115 @@
                 </tr>
               </tbody>
             </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Importar CSV View (Solo admin/superadmin) -->
+      <section id="view-importar" class="view-section">
+        <div class="content-header">
+          <h2>Importar desde CSV</h2>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h3>📄 Cargar Archivo CSV</h3>
+          </div>
+          <div class="card-body">
+            <p style="color: var(--gray-600); font-size: 0.875rem; margin-bottom: 1rem;">
+              Importa puntos de ayuda desde un archivo CSV. El archivo debe tener las columnas necesarias (nombre, latitud, longitud, etc.).
+              <a href="#" id="btn-download-template" style="color: var(--primary); text-decoration: underline;">Descargar plantilla CSV</a>
+            </p>
+            
+            <div class="import-dropzone" id="csv-dropzone">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              <p><strong>Arrastra un archivo CSV aquí</strong></p>
+              <p style="font-size: 0.875rem; color: var(--gray-500);">o haz clic para seleccionar</p>
+              <input type="file" id="csv-file-input" accept=".csv" style="display: none;">
+            </div>
+            
+            <div id="csv-file-info" style="display: none; margin-top: 1rem; padding: 1rem; background: var(--gray-50); border-radius: 0.5rem;">
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" width="24" height="24">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                </svg>
+                <div>
+                  <strong id="csv-filename">archivo.csv</strong>
+                  <p style="font-size: 0.75rem; color: var(--gray-500); margin: 0;" id="csv-filesize">0 KB</p>
+                </div>
+                <button type="button" class="btn btn-secondary" style="margin-left: auto;" id="btn-clear-csv">Cambiar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Preview de datos -->
+        <div class="card" id="csv-preview-card" style="display: none;">
+          <div class="card-header">
+            <h3>👁️ Vista Previa</h3>
+            <span class="preview-count" id="csv-preview-count">0 registros</span>
+          </div>
+          <div class="card-body">
+            <div class="import-summary" id="csv-summary">
+              <div class="summary-item">
+                <span class="summary-label">Total de filas:</span>
+                <span class="summary-value" id="summary-total">0</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">Válidos:</span>
+                <span class="summary-value success" id="summary-valid">0</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">Con errores:</span>
+                <span class="summary-value danger" id="summary-errors">0</span>
+              </div>
+            </div>
+            
+            <div id="csv-errors" style="display: none; margin-top: 1rem;">
+              <h4 style="color: var(--danger); font-size: 0.875rem; margin-bottom: 0.5rem;">⚠️ Filas con errores:</h4>
+              <ul id="csv-errors-list" style="font-size: 0.75rem; color: var(--gray-600); max-height: 150px; overflow-y: auto;"></ul>
+            </div>
+          </div>
+          <div class="table-container" style="max-height: 400px; overflow-y: auto;">
+            <table class="data-table">
+              <thead>
+                <tr id="csv-preview-header"></tr>
+              </thead>
+              <tbody id="csv-preview-body"></tbody>
+            </table>
+          </div>
+          <div class="card-footer" style="padding: 1rem; border-top: 1px solid var(--gray-200); display: flex; gap: 1rem; justify-content: flex-end;">
+            <button type="button" class="btn btn-secondary" id="btn-cancel-import">Cancelar</button>
+            <button type="button" class="btn btn-primary" id="btn-confirm-import" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              Importar <span id="import-count">0</span> puntos
+            </button>
+          </div>
+        </div>
+        
+        <!-- Resultado de importación -->
+        <div class="card" id="csv-result-card" style="display: none;">
+          <div class="card-header">
+            <h3>✅ Resultado de Importación</h3>
+          </div>
+          <div class="card-body">
+            <div class="import-result" id="csv-result">
+              <div class="result-icon success">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+              </div>
+              <h4 id="result-title">Importación completada</h4>
+              <p id="result-message">Se importaron X puntos correctamente.</p>
+              <div class="result-actions">
+                <button type="button" class="btn btn-secondary" id="btn-import-another">Importar otro archivo</button>
+                <button type="button" class="btn btn-primary" id="btn-view-puntos">Ver puntos importados</button>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -1682,6 +1932,10 @@
                 <input type="number" id="edit-cantidad-ninos" class="form-input" min="0" value="0">
               </div>
               <div class="form-group">
+                <label for="edit-cantidad-adolescentes">Cantidad de adolescentes</label>
+                <input type="number" id="edit-cantidad-adolescentes" class="form-input" min="0" value="0">
+              </div>
+              <div class="form-group">
                 <label for="edit-cantidad-adultos">Cantidad de adultos</label>
                 <input type="number" id="edit-cantidad-adultos" class="form-input" min="0" value="0">
               </div>
@@ -1696,11 +1950,57 @@
               <input type="text" id="edit-animales" class="form-input" placeholder="Ej: 2 perros, 3 gatos">
             </div>
             
+            <div class="form-row">
+              <div class="form-group">
+                <label for="edit-riesgo-asbesto">Riesgo de asbesto</label>
+                <select id="edit-riesgo-asbesto" class="form-input">
+                  <option value="no_se">❓ No se sabe</option>
+                  <option value="si">✅ Sí, hay riesgo</option>
+                  <option value="no">❌ No hay riesgo</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="edit-foto-asbesto">URL foto de asbesto</label>
+                <input type="text" id="edit-foto-asbesto" class="form-input" placeholder="https://...">
+              </div>
+            </div>
+            
+            <div class="form-row">
+              <div class="form-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="edit-tiene-banos">
+                  <span>🚻 Tiene baños disponibles</span>
+                </label>
+              </div>
+              <div class="form-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="edit-tiene-electricidad">
+                  <span>⚡ Tiene electricidad</span>
+                </label>
+              </div>
+              <div class="form-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="edit-tiene-senal">
+                  <span>📶 Tiene señal celular</span>
+                </label>
+              </div>
+            </div>
+            
             <div class="form-group full">
-              <label class="checkbox-label">
-                <input type="checkbox" id="edit-riesgo-asbesto">
-                <span>⚠️ Hay riesgo de asbesto en la zona</span>
-              </label>
+              <label for="edit-categorias-ayuda">Tipo de ayuda necesitada (separado por comas)</label>
+              <input type="text" id="edit-categorias-ayuda" class="form-input" placeholder="Ej: alimentos, ropa, agua, medicamentos">
+              <p class="form-hint">Ejemplo: alimentos, ropa, agua, medicamentos, frazadas</p>
+            </div>
+            
+            <div class="form-group full">
+              <label for="edit-tipos-acceso">Tipos de acceso recomendados (separado por comas)</label>
+              <input type="text" id="edit-tipos-acceso" class="form-input" placeholder="Ej: 4x4, camioneta, a pie">
+              <p class="form-hint">Ejemplo: 4x4, camioneta, auto común, a pie, moto</p>
+            </div>
+            
+            <div class="form-group full">
+              <label for="edit-archivo-kml">URL del archivo KML</label>
+              <input type="text" id="edit-archivo-kml" class="form-input" placeholder="https://...archivo.kml">
             </div>
             
             <div class="form-group full">

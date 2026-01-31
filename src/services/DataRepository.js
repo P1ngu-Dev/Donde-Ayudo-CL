@@ -23,9 +23,9 @@ function transformAPItoFrontend(record) {
     city: record.ciudad,
     address: record.direccion,
     place: record.nombre,
-    status: record.estado === 'publicado' ? 'active' : 'inactive',
+    status: record.estado === 'activo' ? 'active' : 'inactive',
     contact: record.contacto_principal,
-    verified: record.estado === 'publicado',
+    verified: record.estado === 'activo',
     verificator: record.entidad_verificadora,
     
     // Horario como string
@@ -38,6 +38,8 @@ function transformAPItoFrontend(record) {
     // Campos nuevos del sistema
     categoria: record.categoria,
     subtipo: record.subtipo,
+    categorias_ayuda: record.categorias_ayuda || [],
+    nivel_urgencia: record.nivel_urgencia,
     estado: record.estado,
     capacidad_estado: record.capacidad_estado,
     contacto_nombre: record.contacto_nombre,
@@ -48,18 +50,31 @@ function transformAPItoFrontend(record) {
     nombre_zona: record.nombre_zona,
     habitado_actualmente: record.habitado_actualmente,
     cantidad_ninos: record.cantidad_ninos,
+    cantidad_adolescentes: record.cantidad_adolescentes,
     cantidad_adultos: record.cantidad_adultos,
     cantidad_ancianos: record.cantidad_ancianos,
     animales_detalle: record.animales_detalle,
+    
+    // Riesgos y logística
     riesgo_asbesto: record.riesgo_asbesto,
+    foto_asbesto: record.foto_asbesto,
     logistica_llegada: record.logistica_llegada,
+    tipos_acceso: record.tipos_acceso || [],
     requiere_voluntarios: record.requiere_voluntarios,
-    urgencia: record.urgencia,
+    
+    // Infraestructura
+    tiene_banos: record.tiene_banos,
+    tiene_electricidad: record.tiene_electricidad,
+    tiene_senal: record.tiene_senal,
+    
+    // Evidencia
     evidencia_fotos: record.evidencia_fotos || [],
+    archivo_kml: record.archivo_kml,
     
     // Metadatos
     created_at: record.created,
-    updated_at: record.updated
+    updated_at: record.updated,
+    created_by: record.created_by
   };
 }
 

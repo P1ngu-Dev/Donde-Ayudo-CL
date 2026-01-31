@@ -244,3 +244,55 @@ func ToggleUserActive(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(user.ToResponse())
 }
+
+// ImportCSV importa puntos desde un array JSON (datos parseados del CSV)
+func ImportCSV(w http.ResponseWriter, r *http.Request) {
+	var req models.CSVImportRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"Invalid request body"}`, http.StatusBadRequest)
+		return
+	}
+
+	if len(req.Data) == 0 {
+		http.Error(w, `{"error":"No data provided"}`, http.StatusBadRequest)
+		return
+	}
+
+	userID := middleware.GetUserID(r)
+
+	imported := 0
+	skipped := 0
+	var errors []string
+
+	for i, punto := range req.Data {
+		// Validar campos requeridos
+		if punto.Nombre == "" || punto.Latitud == 0 || punto.Longitud == 0 {
+			skipped++
+			errors = append(errors, strconv.Itoa(i)+": Missing required fields (nombre, latitud, longitud)")
+			continue
+		}
+
+		// Establecer estado por defecto si no viene
+		if punto.Estado == "" {
+			punto.Estado = "activo"
+		}
+
+		_, err := database.CreatePunto(punto, userID)
+		if err != nil {
+			skipped++
+			errors = append(errors, strconv.Itoa(i)+": "+err.Error())
+			continue
+		}
+
+		imported++
+	}
+
+	response := models.CSVImportResponse{
+		Imported: imported,
+		Skipped:  skipped,
+		Errors:   errors,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}

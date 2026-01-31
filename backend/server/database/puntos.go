@@ -12,17 +12,20 @@ import (
 
 func GetPuntos(categoria, subtipo, ciudad, estado string, page, limit int) (*models.PuntosListResponse, error) {
 	if estado == "" {
-		estado = "publicado"
+		estado = "activo"
 	}
 
 	query := `
 		SELECT id, nombre, latitud, longitud, direccion, ciudad, categoria, subtipo,
+		       categorias_ayuda, nivel_urgencia,
 		       contacto_principal, contacto_nombre, horario, estado, entidad_verificadora,
 		       fecha_verificacion, notas_internas, capacidad_estado,
 		       necesidades_raw, necesidades_tags, nombre_zona, habitado_actualmente,
-		       cantidad_ninos, cantidad_adultos, cantidad_ancianos, animales_detalle,
-		       riesgo_asbesto, logistica_llegada, requiere_voluntarios, urgencia,
-		       evidencia_fotos, created, updated
+		       cantidad_ninos, cantidad_adolescentes, cantidad_adultos, cantidad_ancianos,
+		       animales_detalle, riesgo_asbesto, foto_asbesto, logistica_llegada,
+		       tipos_acceso, requiere_voluntarios, tiene_banos, tiene_electricidad,
+		       tiene_senal, fallecidos_reportados, evidencia_fotos, archivo_kml,
+		       created, updated, created_by
 		FROM puntos
 		WHERE 1=1
 	`
@@ -112,12 +115,15 @@ func GetPuntos(categoria, subtipo, ciudad, estado string, page, limit int) (*mod
 func GetPuntoByID(id string) (*models.Punto, error) {
 	query := `
 		SELECT id, nombre, latitud, longitud, direccion, ciudad, categoria, subtipo,
+		       categorias_ayuda, nivel_urgencia,
 		       contacto_principal, contacto_nombre, horario, estado, entidad_verificadora,
 		       fecha_verificacion, notas_internas, capacidad_estado,
 		       necesidades_raw, necesidades_tags, nombre_zona, habitado_actualmente,
-		       cantidad_ninos, cantidad_adultos, cantidad_ancianos, animales_detalle,
-		       riesgo_asbesto, logistica_llegada, requiere_voluntarios, urgencia,
-		       evidencia_fotos, created, updated
+		       cantidad_ninos, cantidad_adolescentes, cantidad_adultos, cantidad_ancianos,
+		       animales_detalle, riesgo_asbesto, foto_asbesto, logistica_llegada,
+		       tipos_acceso, requiere_voluntarios, tiene_banos, tiene_electricidad,
+		       tiene_senal, fallecidos_reportados, evidencia_fotos, archivo_kml,
+		       created, updated, created_by
 		FROM puntos
 		WHERE id = $1
 		LIMIT 1
@@ -136,34 +142,44 @@ func GetPuntoByID(id string) (*models.Punto, error) {
 	return nil, sql.ErrNoRows
 }
 
-func CreatePunto(req models.PuntoCreateRequest, verificadoPor string) (*models.Punto, error) {
+func CreatePunto(req models.PuntoCreateRequest, createdBy string) (*models.Punto, error) {
 	id := fmt.Sprintf("pnt_%d", time.Now().UnixNano())
 
 	necesidadesJSON, _ := json.Marshal(req.NecesidadesTags)
+	categoriasJSON, _ := json.Marshal(req.CategoriasAyuda)
+	tiposAccesoJSON, _ := json.Marshal(req.TiposAcceso)
+	evidenciaJSON, _ := json.Marshal(req.EvidenciaFotos)
 
 	query := `
 		INSERT INTO puntos (
 			id, nombre, latitud, longitud, direccion, ciudad, categoria, subtipo,
+			categorias_ayuda, nivel_urgencia,
 			contacto_principal, contacto_nombre, horario, estado, entidad_verificadora,
-			fecha_verificacion, capacidad_estado, necesidades_raw,
-			necesidades_tags, nombre_zona, habitado_actualmente, cantidad_ninos,
+			fecha_verificacion, capacidad_estado, necesidades_raw, necesidades_tags,
+			nombre_zona, habitado_actualmente, cantidad_ninos, cantidad_adolescentes,
 			cantidad_adultos, cantidad_ancianos, animales_detalle, riesgo_asbesto,
-			logistica_llegada, requiere_voluntarios, urgencia, created, updated
+			foto_asbesto, logistica_llegada, tipos_acceso, requiere_voluntarios,
+			tiene_banos, tiene_electricidad, tiene_senal, fallecidos_reportados,
+			evidencia_fotos, archivo_kml, created, updated, created_by
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), $14, $15, $16, $17, $18,
-			$19, $20, $21, $22, $23, $24, $25, $26, NOW(), NOW()
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW(), $16,
+			$17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31,
+			$32, $33, $34, $35, $36, NOW(), NOW(), $37
 		)
 	`
 
 	_, err := DB.Exec(query,
 		id, req.Nombre, req.Latitud, req.Longitud, req.Direccion, req.Ciudad,
-		req.Categoria, req.Subtipo, req.ContactoPrincipal, req.ContactoNombre,
-		req.Horario, req.Estado, req.EntidadVerificadora,
-		req.CapacidadEstado, req.NecesidadesRaw, string(necesidadesJSON),
-		req.NombreZona, req.HabitadoActualmente, req.CantidadNinos,
-		req.CantidadAdultos, req.CantidadAncianos, req.AnimalesDetalle,
-		req.RiesgoAsbesto, req.LogisticaLlegada, req.RequiereVoluntarios,
-		req.Urgencia,
+		req.Categoria, req.Subtipo, string(categoriasJSON), req.NivelUrgencia,
+		req.ContactoPrincipal, req.ContactoNombre, req.Horario, req.Estado,
+		req.EntidadVerificadora, req.CapacidadEstado, req.NecesidadesRaw,
+		string(necesidadesJSON), req.NombreZona, req.HabitadoActualmente,
+		req.CantidadNinos, req.CantidadAdolescentes, req.CantidadAdultos,
+		req.CantidadAncianos, req.AnimalesDetalle, req.RiesgoAsbesto,
+		req.FotoAsbesto, req.LogisticaLlegada, string(tiposAccesoJSON),
+		req.RequiereVoluntarios, req.TieneBanos, req.TieneElectricidad,
+		req.TieneSenal, req.FallecidosReportados, string(evidenciaJSON),
+		req.ArchivoKML, createdBy,
 	)
 
 	if err != nil {
@@ -303,21 +319,27 @@ func scanPunto(rows *sql.Rows) (*models.Punto, error) {
 	punto := &models.Punto{}
 	var necesidadesJSON sql.NullString
 	var evidenciaJSON sql.NullString
+	var categoriasJSON sql.NullString
+	var tiposAccesoJSON sql.NullString
 	var fechaVerif sql.NullString
 	var created sql.NullString
 	var updated sql.NullString
+	var createdBy sql.NullString
 
 	err := rows.Scan(
 		&punto.ID, &punto.Nombre, &punto.Latitud, &punto.Longitud,
 		&punto.Direccion, &punto.Ciudad, &punto.Categoria, &punto.Subtipo,
+		&categoriasJSON, &punto.NivelUrgencia,
 		&punto.ContactoPrincipal, &punto.ContactoNombre, &punto.Horario,
 		&punto.Estado, &punto.EntidadVerificadora, &fechaVerif,
 		&punto.NotasInternas, &punto.CapacidadEstado,
 		&punto.NecesidadesRaw, &necesidadesJSON, &punto.NombreZona,
-		&punto.HabitadoActualmente, &punto.CantidadNinos, &punto.CantidadAdultos,
-		&punto.CantidadAncianos, &punto.AnimalesDetalle, &punto.RiesgoAsbesto,
-		&punto.LogisticaLlegada, &punto.RequiereVoluntarios, &punto.Urgencia,
-		&evidenciaJSON, &created, &updated,
+		&punto.HabitadoActualmente, &punto.CantidadNinos, &punto.CantidadAdolescentes,
+		&punto.CantidadAdultos, &punto.CantidadAncianos, &punto.AnimalesDetalle,
+		&punto.RiesgoAsbesto, &punto.FotoAsbesto, &punto.LogisticaLlegada,
+		&tiposAccesoJSON, &punto.RequiereVoluntarios, &punto.TieneBanos,
+		&punto.TieneElectricidad, &punto.TieneSenal, &punto.FallecidosReportados,
+		&evidenciaJSON, &punto.ArchivoKML, &created, &updated, &createdBy,
 	)
 
 	if err != nil {
@@ -334,11 +356,29 @@ func scanPunto(rows *sql.Rows) (*models.Punto, error) {
 	if updated.Valid {
 		punto.Updated = updated.String
 	}
-
-	if necesidadesJSON.Valid && necesidadesJSON.String != "" && necesidadesJSON.String != "null" {
-		json.Unmarshal([]byte(necesidadesJSON.String), &punto.NecesidadesTags)
+	if createdBy.Valid {
+		punto.CreatedBy = createdBy.String
 	}
 
+	// Parsear JSONB de categorias_ayuda
+	if categoriasJSON.Valid && categoriasJSON.String != "" && categoriasJSON.String != "null" {
+		json.Unmarshal([]byte(categoriasJSON.String), &punto.CategoriasAyuda)
+	}
+
+	// Parsear JSONB de tipos_acceso
+	if tiposAccesoJSON.Valid && tiposAccesoJSON.String != "" && tiposAccesoJSON.String != "null" {
+		json.Unmarshal([]byte(tiposAccesoJSON.String), &punto.TiposAcceso)
+	}
+
+	// Parsear JSONB de necesidades_tags (puede ser array simple o objeto complejo)
+	if necesidadesJSON.Valid && necesidadesJSON.String != "" && necesidadesJSON.String != "null" {
+		// Intentar parsear como objeto complejo primero
+		var necTags interface{}
+		json.Unmarshal([]byte(necesidadesJSON.String), &necTags)
+		punto.NecesidadesTags = necTags
+	}
+
+	// Parsear JSONB de evidencia_fotos
 	if evidenciaJSON.Valid && evidenciaJSON.String != "" && evidenciaJSON.String != "[]" && evidenciaJSON.String != "null" {
 		json.Unmarshal([]byte(evidenciaJSON.String), &punto.EvidenciaFotos)
 	}

@@ -256,6 +256,92 @@ export function createDetailContent(point) {
     `;
   }
 
+  // Categorías de ayuda (nuevos campos)
+  let categoriasAyudaHtml = '';
+  if (point.categorias_ayuda?.length > 0) {
+    categoriasAyudaHtml = `
+      <div class="detail-section">
+        <h4>Tipo de ayuda necesitada</h4>
+        <div class="supplies-list">
+          ${point.categorias_ayuda.map(c => `<span class="supply-tag">${c}</span>`).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  // Nivel de urgencia para zonas SOS
+  let urgenciaHtml = '';
+  if (point.nivel_urgencia) {
+    const urgenciaIcons = {
+      critica: '🔴',
+      alta: '🟠',
+      media: '🟡',
+      baja: '🟢'
+    };
+    const urgenciaLabels = {
+      critica: 'Crítica',
+      alta: 'Alta',
+      media: 'Media',
+      baja: 'Baja'
+    };
+    urgenciaHtml = `
+      <div class="detail-section">
+        <h4>Nivel de urgencia</h4>
+        <p style="color: #374151; font-size: 0.95rem; font-weight: 600;">
+          ${urgenciaIcons[point.nivel_urgencia] || ''} ${urgenciaLabels[point.nivel_urgencia] || point.nivel_urgencia}
+        </p>
+      </div>
+    `;
+  }
+
+  // Información de infraestructura (solo si hay datos)
+  let infraHtml = '';
+  const infraItems = [];
+  if (point.tiene_banos) infraItems.push('🚻 Baños disponibles');
+  if (point.tiene_electricidad) infraItems.push('⚡ Electricidad');
+  if (point.tiene_senal) infraItems.push('📶 Señal celular');
+  
+  if (infraItems.length > 0) {
+    infraHtml = `
+      <div class="detail-section">
+        <h4>Infraestructura</h4>
+        <p style="color: #374151; font-size: 0.875rem;">${infraItems.join(' • ')}</p>
+      </div>
+    `;
+  }
+
+  // Tipos de acceso
+  let accesoHtml = '';
+  if (point.tipos_acceso?.length > 0) {
+    accesoHtml = `
+      <div class="detail-section">
+        <h4>Acceso recomendado</h4>
+        <p style="color: #374151; font-size: 0.875rem;">${point.tipos_acceso.join(', ')}</p>
+      </div>
+    `;
+  }
+
+  // Información de personas (para zonas habitadas)
+  let personasHtml = '';
+  const totalPersonas = (point.cantidad_ninos || 0) + (point.cantidad_adolescentes || 0) + 
+                        (point.cantidad_adultos || 0) + (point.cantidad_ancianos || 0);
+  if (totalPersonas > 0) {
+    const personasDetalles = [];
+    if (point.cantidad_ninos > 0) personasDetalles.push(`${point.cantidad_ninos} niños`);
+    if (point.cantidad_adolescentes > 0) personasDetalles.push(`${point.cantidad_adolescentes} adolescentes`);
+    if (point.cantidad_adultos > 0) personasDetalles.push(`${point.cantidad_adultos} adultos`);
+    if (point.cantidad_ancianos > 0) personasDetalles.push(`${point.cantidad_ancianos} adultos mayores`);
+    
+    personasHtml = `
+      <div class="detail-section">
+        <h4>Personas en el lugar</h4>
+        <p style="color: #374151; font-size: 0.875rem;">
+          ${totalPersonas} personas: ${personasDetalles.join(', ')}
+        </p>
+      </div>
+    `;
+  }
+
   // Tiempo desde última actualización
   const updatedDate = new Date(point.updated_at);
   const now = new Date();
@@ -290,6 +376,8 @@ export function createDetailContent(point) {
       <span>${status.text}</span>
     </div>
     
+    ${urgenciaHtml}
+    
     ${point.address ? `
       <div class="detail-section">
         <h4>Dirección</h4>
@@ -297,7 +385,15 @@ export function createDetailContent(point) {
       </div>
     ` : ''}
     
+    ${personasHtml}
+    
     ${suppliesHtml}
+    
+    ${categoriasAyudaHtml}
+    
+    ${infraHtml}
+    
+    ${accesoHtml}
     
     ${contactHtml ? `
       <div class="detail-section">

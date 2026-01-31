@@ -391,6 +391,35 @@ class AdminService {
     
     return await response.json();
   }
+
+  // ==================== IMPORTACIÓN CSV ====================
+
+  /**
+   * Importa múltiples puntos desde CSV (solo admin/superadmin)
+   */
+  async importCSV(puntos) {
+    if (!authService.isAdmin() && !authService.isSuperAdmin()) {
+      throw new Error('No tienes permisos para importar datos');
+    }
+
+    const response = await fetch(`${API_URL}/api/admin/import-csv`, {
+      method: 'POST',
+      headers: authService.getAuthHeaders(),
+      body: JSON.stringify({ data: puntos })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Error importando datos');
+    }
+
+    const result = await response.json();
+    return {
+      success: true,
+      imported: result.imported || 0,
+      errors: result.errors || []
+    };
+  }
 }
 
 export const adminService = new AdminService();

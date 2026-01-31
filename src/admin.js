@@ -230,6 +230,9 @@ function navigateTo(view) {
     case 'usuarios':
       loadUsuarios();
       break;
+    case 'importar':
+      setupImportCSV();
+      break;
   }
   
   // Close mobile menu
@@ -414,6 +417,12 @@ function setupFilters() {
   
   document.getElementById('filter-categoria').addEventListener('change', (e) => {
     puntosFilters.categoria = e.target.value;
+    puntosPage = 1;
+    loadPuntos();
+  });
+  
+  document.getElementById('filter-urgencia')?.addEventListener('change', (e) => {
+    puntosFilters.urgencia = e.target.value;
     puntosPage = 1;
     loadPuntos();
   });
@@ -848,6 +857,9 @@ async function openEditModal(id) {
       const cantidadNinos = document.getElementById('edit-cantidad-ninos');
       if (cantidadNinos) cantidadNinos.value = punto.cantidad_ninos || 0;
       
+      const cantidadAdolescentes = document.getElementById('edit-cantidad-adolescentes');
+      if (cantidadAdolescentes) cantidadAdolescentes.value = punto.cantidad_adolescentes || 0;
+      
       const cantidadAdultos = document.getElementById('edit-cantidad-adultos');
       if (cantidadAdultos) cantidadAdultos.value = punto.cantidad_adultos || 0;
       
@@ -858,7 +870,32 @@ async function openEditModal(id) {
       if (animales) animales.value = punto.animales_detalle || '';
       
       const riesgoAsbesto = document.getElementById('edit-riesgo-asbesto');
-      if (riesgoAsbesto) riesgoAsbesto.checked = punto.riesgo_asbesto || false;
+      if (riesgoAsbesto) riesgoAsbesto.value = punto.riesgo_asbesto || 'no_se';
+      
+      const fotoAsbesto = document.getElementById('edit-foto-asbesto');
+      if (fotoAsbesto) fotoAsbesto.value = punto.foto_asbesto || '';
+      
+      const tieneBanos = document.getElementById('edit-tiene-banos');
+      if (tieneBanos) tieneBanos.checked = punto.tiene_banos || false;
+      
+      const tieneElectricidad = document.getElementById('edit-tiene-electricidad');
+      if (tieneElectricidad) tieneElectricidad.checked = punto.tiene_electricidad || false;
+      
+      const tieneSenal = document.getElementById('edit-tiene-senal');
+      if (tieneSenal) tieneSenal.checked = punto.tiene_senal || false;
+      
+      const categoriasAyuda = document.getElementById('edit-categorias-ayuda');
+      if (categoriasAyuda && punto.categorias_ayuda) {
+        categoriasAyuda.value = Array.isArray(punto.categorias_ayuda) ? punto.categorias_ayuda.join(', ') : '';
+      }
+      
+      const tiposAcceso = document.getElementById('edit-tipos-acceso');
+      if (tiposAcceso && punto.tipos_acceso) {
+        tiposAcceso.value = Array.isArray(punto.tipos_acceso) ? punto.tipos_acceso.join(', ') : '';
+      }
+      
+      const archivoKml = document.getElementById('edit-archivo-kml');
+      if (archivoKml) archivoKml.value = punto.archivo_kml || '';
       
       const requiereVoluntarios = document.getElementById('edit-requiere-voluntarios');
       if (requiereVoluntarios) requiereVoluntarios.checked = punto.requiere_voluntarios || false;
@@ -1088,15 +1125,29 @@ async function handleEditSubmit(e) {
   // Campos SOS solo si la categoría es SOS
   if (categoria === 'sos') {
     data.nombre_zona = document.getElementById('edit-nombre-zona')?.value || '';
-    data.urgencia = document.getElementById('edit-urgencia')?.value || '';
+    data.nivel_urgencia = document.getElementById('edit-urgencia')?.value || '';
     data.habitado_actualmente = document.getElementById('edit-habitado')?.checked || false;
     data.cantidad_ninos = parseInt(document.getElementById('edit-cantidad-ninos')?.value) || 0;
+    data.cantidad_adolescentes = parseInt(document.getElementById('edit-cantidad-adolescentes')?.value) || 0;
     data.cantidad_adultos = parseInt(document.getElementById('edit-cantidad-adultos')?.value) || 0;
     data.cantidad_ancianos = parseInt(document.getElementById('edit-cantidad-ancianos')?.value) || 0;
     data.animales_detalle = document.getElementById('edit-animales')?.value || '';
-    data.riesgo_asbesto = document.getElementById('edit-riesgo-asbesto')?.checked || false;
+    data.riesgo_asbesto = document.getElementById('edit-riesgo-asbesto')?.value || 'no_se';
+    data.foto_asbesto = document.getElementById('edit-foto-asbesto')?.value || '';
+    data.tiene_banos = document.getElementById('edit-tiene-banos')?.checked || false;
+    data.tiene_electricidad = document.getElementById('edit-tiene-electricidad')?.checked || false;
+    data.tiene_senal = document.getElementById('edit-tiene-senal')?.checked || false;
     data.requiere_voluntarios = document.getElementById('edit-requiere-voluntarios')?.checked || false;
     data.logistica_llegada = document.getElementById('edit-logistica')?.value || '';
+    
+    // Categorías de ayuda y tipos de acceso (convertir de texto separado por comas a array)
+    const categoriasAyudaText = document.getElementById('edit-categorias-ayuda')?.value || '';
+    data.categorias_ayuda = categoriasAyudaText ? categoriasAyudaText.split(',').map(s => s.trim()).filter(s => s) : [];
+    
+    const tiposAccesoText = document.getElementById('edit-tipos-acceso')?.value || '';
+    data.tipos_acceso = tiposAccesoText ? tiposAccesoText.split(',').map(s => s.trim()).filter(s => s) : [];
+    
+    data.archivo_kml = document.getElementById('edit-archivo-kml')?.value || '';
   }
   
   try {
@@ -1306,4 +1357,458 @@ function showToast(message, type = 'success') {
     toast.style.transform = 'translateX(100%)';
     setTimeout(() => toast.remove(), 300);
   }, 4000);
+}
+
+// ==================== CSV IMPORT ====================
+let csvData = [];
+let csvHeaders = [];
+let importSetupDone = false;
+
+function setupImportCSV() {
+  if (importSetupDone) return;
+  importSetupDone = true;
+  
+  const dropzone = document.getElementById('csv-dropzone');
+  const fileInput = document.getElementById('csv-file-input');
+  
+  // Click to upload
+  dropzone.addEventListener('click', () => fileInput.click());
+  
+  // File selected
+  fileInput.addEventListener('change', (e) => {
+    if (e.target.files[0]) {
+      handleCSVFile(e.target.files[0]);
+    }
+  });
+  
+  // Drag and drop
+  dropzone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropzone.classList.add('dragover');
+  });
+  
+  dropzone.addEventListener('dragleave', () => {
+    dropzone.classList.remove('dragover');
+  });
+  
+  dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('dragover');
+    if (e.dataTransfer.files[0]) {
+      handleCSVFile(e.dataTransfer.files[0]);
+    }
+  });
+  
+  // Clear file
+  document.getElementById('btn-clear-csv')?.addEventListener('click', resetImport);
+  
+  // Cancel import
+  document.getElementById('btn-cancel-import')?.addEventListener('click', resetImport);
+  
+  // Confirm import
+  document.getElementById('btn-confirm-import')?.addEventListener('click', executeImport);
+  
+  // Import another
+  document.getElementById('btn-import-another')?.addEventListener('click', resetImport);
+  
+  // View puntos after import
+  document.getElementById('btn-view-puntos')?.addEventListener('click', () => {
+    navigateTo('puntos');
+  });
+  
+  // Download template
+  document.getElementById('btn-download-template')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    downloadCSVTemplate();
+  });
+}
+
+function handleCSVFile(file) {
+  if (!file.name.endsWith('.csv')) {
+    showToast('Por favor selecciona un archivo CSV', 'error');
+    return;
+  }
+  
+  // Show file info
+  document.getElementById('csv-dropzone').style.display = 'none';
+  document.getElementById('csv-file-info').style.display = 'block';
+  document.getElementById('csv-filename').textContent = file.name;
+  document.getElementById('csv-filesize').textContent = formatFileSize(file.size);
+  
+  // Parse CSV
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    parseCSV(e.target.result);
+  };
+  reader.readAsText(file);
+}
+
+function parseCSV(content) {
+  const lines = content.split('\n').filter(line => line.trim());
+  if (lines.length < 2) {
+    showToast('El archivo CSV está vacío o no tiene datos', 'error');
+    return;
+  }
+  
+  // Parse header
+  csvHeaders = parseCSVLine(lines[0]);
+  
+  // Parse data rows
+  csvData = [];
+  const errors = [];
+  
+  for (let i = 1; i < lines.length; i++) {
+    const values = parseCSVLine(lines[i]);
+    const row = {};
+    let hasError = false;
+    let errorMsg = '';
+    
+    csvHeaders.forEach((header, index) => {
+      row[header] = values[index] || '';
+    });
+    
+    // Transform to API format
+    try {
+      const transformed = transformCSVRowToAPI(row, i + 1);
+      
+      // Validate required fields
+      if (!transformed.nombre || !transformed.nombre.trim()) {
+        hasError = true;
+        errorMsg = 'Falta nombre';
+      } else if (!transformed.latitud || !transformed.longitud) {
+        hasError = true;
+        errorMsg = 'Faltan coordenadas';
+      }
+      
+      csvData.push({
+        original: row,
+        transformed: transformed,
+        hasError: hasError,
+        errorMsg: errorMsg,
+        rowNum: i + 1
+      });
+    } catch (err) {
+      csvData.push({
+        original: row,
+        transformed: null,
+        hasError: true,
+        errorMsg: err.message,
+        rowNum: i + 1
+      });
+    }
+  }
+  
+  // Show preview
+  showCSVPreview();
+}
+
+function parseCSVLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  
+  result.push(current.trim());
+  return result;
+}
+
+function transformCSVRowToAPI(row, rowNum) {
+  // Map CSV columns to API fields
+  const getVal = (keys) => {
+    for (const key of keys) {
+      if (row[key] !== undefined && row[key] !== '') return row[key];
+    }
+    return '';
+  };
+  
+  // Parse georeferencia (lat, lng)
+  let lat = 0, lng = 0;
+  const georef = getVal(['georeferencia', 'Georeferencia', 'coordenadas']);
+  if (georef) {
+    const match = georef.match(/([-\d.]+)\s*,\s*([-\d.]+)/);
+    if (match) {
+      lat = parseFloat(match[1]);
+      lng = parseFloat(match[2]);
+    }
+  }
+  // Also check separate lat/lng columns
+  if (!lat) lat = parseFloat(getVal(['latitud', 'Latitud', 'lat'])) || 0;
+  if (!lng) lng = parseFloat(getVal(['longitud', 'Longitud', 'lng', 'lon'])) || 0;
+  
+  // Parse emojis for riesgo_asbesto
+  const asbestoRaw = getVal(['riesgo_asbesto', 'Asbesto?', 'asbesto']);
+  let riesgoAsbesto = 'no_se';
+  if (asbestoRaw.includes('✅') || asbestoRaw.toLowerCase().includes('si') || asbestoRaw.toLowerCase() === 'sí') {
+    riesgoAsbesto = 'si';
+  } else if (asbestoRaw.includes('❌') || asbestoRaw.toLowerCase().includes('no')) {
+    riesgoAsbesto = 'no';
+  }
+  
+  // Parse nivel_urgencia
+  const urgenciaRaw = getVal(['nivel_urgencia', 'Nivel de urgencia', 'urgencia']);
+  let nivelUrgencia = '';
+  if (urgenciaRaw.includes('🔴') || urgenciaRaw.toLowerCase().includes('crit')) {
+    nivelUrgencia = 'critica';
+  } else if (urgenciaRaw.includes('🟠') || urgenciaRaw.toLowerCase().includes('alta')) {
+    nivelUrgencia = 'alta';
+  } else if (urgenciaRaw.includes('🟡') || urgenciaRaw.toLowerCase().includes('media')) {
+    nivelUrgencia = 'media';
+  } else if (urgenciaRaw.includes('🟢') || urgenciaRaw.toLowerCase().includes('baja')) {
+    nivelUrgencia = 'baja';
+  }
+  
+  // Parse boolean fields
+  const parseBoolean = (val) => {
+    if (!val) return false;
+    return val.includes('✅') || val.toLowerCase().includes('si') || val.toLowerCase() === 'sí' || val === '1' || val.toLowerCase() === 'true';
+  };
+  
+  // Parse arrays from comma-separated values
+  const parseArray = (val) => {
+    if (!val) return [];
+    return val.split(',').map(v => v.trim()).filter(v => v);
+  };
+  
+  // Parse necesidades_tags as structured object
+  const necesidadesRaw = getVal(['Necesidades detalladas', 'necesidades_detalladas', 'necesidades']);
+  let necesidadesTags = { urgentes: [], importantes: [], deseables: [] };
+  if (necesidadesRaw) {
+    // Try to parse as JSON first
+    try {
+      const parsed = JSON.parse(necesidadesRaw);
+      if (parsed.urgentes || parsed.importantes || parsed.deseables) {
+        necesidadesTags = parsed;
+      }
+    } catch {
+      // If not JSON, put all in urgentes
+      necesidadesTags.urgentes = parseArray(necesidadesRaw);
+    }
+  }
+  
+  return {
+    nombre: getVal(['nombre', 'Nombre', 'Nombre del lugar', 'name']),
+    direccion: getVal(['direccion', 'Direccion', 'Dirección', 'address']),
+    ciudad: getVal(['ciudad', 'Ciudad', 'Comuna', 'comuna', 'city']),
+    latitud: lat,
+    longitud: lng,
+    categoria: getVal(['categoria', 'Categoria', 'Categoría', 'type']) || 'informacion',
+    estado: 'activo',
+    descripcion: getVal(['descripcion', 'Descripcion', 'Descripción', 'description']),
+    horario: getVal(['horario', 'Horario', 'hours']),
+    contacto: getVal(['contacto', 'Contacto', 'contact']),
+    fecha_inicio: getVal(['fecha_inicio', 'Fecha inicio', 'start_date']) || null,
+    fecha_fin: getVal(['fecha_fin', 'Fecha fin', 'end_date']) || null,
+    
+    // Campos SOS
+    nombre_zona: getVal(['nombre_zona', 'Nombre zona', 'Sector']),
+    habitado: parseBoolean(getVal(['habitado', 'Habitado', 'Está habitado'])),
+    cantidad_ninos: parseInt(getVal(['cantidad_ninos', 'Cantidad de niños', 'ninos'])) || 0,
+    cantidad_adultos: parseInt(getVal(['cantidad_adultos', 'Cantidad de adultos', 'adultos'])) || 0,
+    cantidad_ancianos: parseInt(getVal(['cantidad_ancianos', 'Cantidad de adultos mayores', 'ancianos'])) || 0,
+    cantidad_adolescentes: parseInt(getVal(['cantidad_adolescentes', 'Cantidad de adolescentes', 'adolescentes'])) || 0,
+    animales: getVal(['animales', 'Animales', 'Animales en el lugar']),
+    riesgo_asbesto: riesgoAsbesto,
+    foto_asbesto: getVal(['foto_asbesto', 'Foto asbesto', 'foto_asbesto_url']),
+    requiere_voluntarios: parseBoolean(getVal(['requiere_voluntarios', 'Requiere voluntarios'])),
+    logistica: getVal(['logistica', 'Logistica', 'Logística', 'Como llegar']),
+    
+    // Nuevos campos
+    nivel_urgencia: nivelUrgencia,
+    categorias_ayuda: parseArray(getVal(['categorias_ayuda', 'Que ayuda se necesita?', 'tipo_ayuda'])),
+    tipos_acceso: parseArray(getVal(['tipos_acceso', 'ruta para llegar', 'acceso'])),
+    tiene_banos: parseBoolean(getVal(['tiene_banos', 'Baños', 'banos'])),
+    tiene_electricidad: parseBoolean(getVal(['tiene_electricidad', 'Electricidad', 'luz'])),
+    tiene_senal: parseBoolean(getVal(['tiene_senal', 'Señal', 'senal', 'señal'])),
+    archivo_kml: getVal(['archivo_kml', 'Archivo_KML', 'kml']),
+    necesidades_tags: necesidadesTags,
+    
+    // Notas internas (incluye observaciones del CSV)
+    notas_internas: getVal(['notas_internas', 'Observaciones', 'notas', 'observaciones'])
+  };
+}
+
+function showCSVPreview() {
+  const previewCard = document.getElementById('csv-preview-card');
+  const headerRow = document.getElementById('csv-preview-header');
+  const bodyTable = document.getElementById('csv-preview-body');
+  
+  // Calculate stats
+  const total = csvData.length;
+  const valid = csvData.filter(r => !r.hasError).length;
+  const errors = total - valid;
+  
+  // Update summary
+  document.getElementById('summary-total').textContent = total;
+  document.getElementById('summary-valid').textContent = valid;
+  document.getElementById('summary-errors').textContent = errors;
+  document.getElementById('csv-preview-count').textContent = `${total} registros`;
+  document.getElementById('import-count').textContent = valid;
+  
+  // Enable/disable import button
+  document.getElementById('btn-confirm-import').disabled = valid === 0;
+  
+  // Show errors if any
+  const errorsContainer = document.getElementById('csv-errors');
+  const errorsList = document.getElementById('csv-errors-list');
+  if (errors > 0) {
+    errorsContainer.style.display = 'block';
+    errorsList.innerHTML = csvData
+      .filter(r => r.hasError)
+      .slice(0, 20)
+      .map(r => `<li>Fila ${r.rowNum}: ${r.errorMsg}</li>`)
+      .join('');
+  } else {
+    errorsContainer.style.display = 'none';
+  }
+  
+  // Build preview table header
+  const displayColumns = ['nombre', 'ciudad', 'latitud', 'longitud', 'categoria', 'nivel_urgencia'];
+  headerRow.innerHTML = '<th>#</th>' + displayColumns.map(col => `<th>${col}</th>`).join('') + '<th>Estado</th>';
+  
+  // Build preview table body (show first 50 rows)
+  bodyTable.innerHTML = csvData.slice(0, 50).map(row => {
+    const tr = row.transformed || row.original;
+    return `
+      <tr class="${row.hasError ? 'error-row' : ''}">
+        <td>${row.rowNum}</td>
+        ${displayColumns.map(col => `<td title="${escapeHtml(String(tr[col] || ''))}">${escapeHtml(String(tr[col] || '-'))}</td>`).join('')}
+        <td>${row.hasError ? `<span style="color: var(--danger);">⚠️ ${row.errorMsg}</span>` : '<span style="color: var(--success);">✓</span>'}</td>
+      </tr>
+    `;
+  }).join('');
+  
+  previewCard.style.display = 'block';
+}
+
+async function executeImport() {
+  const validRows = csvData.filter(r => !r.hasError);
+  
+  if (validRows.length === 0) {
+    showToast('No hay datos válidos para importar', 'error');
+    return;
+  }
+  
+  // Disable button
+  const btn = document.getElementById('btn-confirm-import');
+  const originalText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Importando...';
+  
+  try {
+    // Prepare data for API
+    const puntos = validRows.map(r => r.transformed);
+    
+    // Call API
+    const result = await adminService.importCSV(puntos);
+    
+    // Show result
+    document.getElementById('csv-preview-card').style.display = 'none';
+    document.getElementById('csv-result-card').style.display = 'block';
+    
+    const resultIcon = document.querySelector('.result-icon');
+    const resultTitle = document.getElementById('result-title');
+    const resultMessage = document.getElementById('result-message');
+    
+    if (result.success) {
+      resultIcon.className = 'result-icon success';
+      resultIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+      resultTitle.textContent = '¡Importación completada!';
+      resultMessage.textContent = `Se importaron ${result.imported} puntos correctamente.`;
+      
+      if (result.errors && result.errors.length > 0) {
+        resultMessage.textContent += ` ${result.errors.length} filas tuvieron errores.`;
+      }
+      
+      showToast(`${result.imported} puntos importados`, 'success');
+    } else {
+      resultIcon.className = 'result-icon error';
+      resultIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+      resultTitle.textContent = 'Error en la importación';
+      resultMessage.textContent = result.error || 'Ocurrió un error al importar los datos.';
+      
+      showToast('Error en la importación', 'error');
+    }
+  } catch (error) {
+    console.error('Error importing CSV:', error);
+    showToast('Error al importar: ' + error.message, 'error');
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+  }
+}
+
+function resetImport() {
+  // Reset file input
+  document.getElementById('csv-file-input').value = '';
+  
+  // Reset UI
+  document.getElementById('csv-dropzone').style.display = 'block';
+  document.getElementById('csv-file-info').style.display = 'none';
+  document.getElementById('csv-preview-card').style.display = 'none';
+  document.getElementById('csv-result-card').style.display = 'none';
+  
+  // Reset data
+  csvData = [];
+  csvHeaders = [];
+}
+
+function downloadCSVTemplate() {
+  const headers = [
+    'nombre', 'direccion', 'ciudad', 'latitud', 'longitud', 'categoria',
+    'descripcion', 'horario', 'contacto', 'fecha_inicio', 'fecha_fin',
+    'nombre_zona', 'habitado', 'cantidad_ninos', 'cantidad_adultos', 
+    'cantidad_ancianos', 'cantidad_adolescentes', 'animales',
+    'riesgo_asbesto', 'requiere_voluntarios', 'logistica',
+    'nivel_urgencia', 'categorias_ayuda', 'tipos_acceso',
+    'tiene_banos', 'tiene_electricidad', 'tiene_senal',
+    'archivo_kml', 'notas_internas'
+  ];
+  
+  const exampleRow = [
+    'Centro de Acopio Municipal', 'Av. Libertad 1234', 'Viña del Mar', 
+    '-33.0247', '-71.5518', 'acopio',
+    'Centro de acopio para damnificados', '9:00 - 18:00', '+56912345678',
+    '', '',
+    'Sector Centro', 'si', '5', '10', '3', '2', '2 perros',
+    'no', 'si', 'Llegar por Av. Libertad hasta el nº 1234',
+    'alta', 'alimentos,ropa,agua', '4x4,camioneta',
+    'si', 'si', 'no',
+    '', 'Notas internas aquí'
+  ];
+  
+  const csvContent = [
+    headers.join(','),
+    exampleRow.map(v => `"${v}"`).join(',')
+  ].join('\n');
+  
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'plantilla_puntos_ayuda.csv';
+  link.click();
+  URL.revokeObjectURL(link.href);
+  
+  showToast('Plantilla descargada', 'success');
+}
+
+function formatFileSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }

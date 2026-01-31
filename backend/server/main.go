@@ -81,6 +81,9 @@ func main() {
 		// DELETE /api/admin/puntos/:id - Eliminar punto (superadmin)
 		r.With(mw.RequireRole("superadmin")).Delete("/puntos/{id}", handlers.DeletePunto)
 
+		// POST /api/admin/import-csv - Importar puntos desde CSV (admin, superadmin)
+		r.With(mw.RequireRole("admin", "superadmin")).Post("/import-csv", handlers.ImportCSV)
+
 		// --- USUARIOS ---
 		// GET /api/admin/users - Listar usuarios (admin, superadmin)
 		r.With(mw.RequireRole("admin", "superadmin")).Get("/users", handlers.GetUsers)

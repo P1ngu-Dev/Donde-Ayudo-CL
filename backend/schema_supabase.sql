@@ -58,6 +58,10 @@ CREATE TABLE IF NOT EXISTS puntos (
     -- Clasificación
     categoria TEXT,  -- NULLABLE: acopio, albergue, hidratacion, sos
     subtipo TEXT,  -- NULLABLE
+    categorias_ayuda JSONB,  -- NULLABLE - Array de categorías ["salud", "agua", "herramientas"]
+    
+    -- Urgencia
+    nivel_urgencia TEXT,  -- NULLABLE: critico, alto, medio, bajo
     
     -- Contacto
     contacto_principal TEXT,  -- NULLABLE
@@ -65,34 +69,47 @@ CREATE TABLE IF NOT EXISTS puntos (
     horario TEXT,  -- NULLABLE
     
     -- Estado y verificación
-    estado TEXT DEFAULT 'activo' CHECK(estado IN ('activo', 'inactivo', 'pendiente', 'cerrado')),
+    estado TEXT DEFAULT 'activo' CHECK(estado IN ('activo', 'inactivo', 'pendiente', 'cerrado', 'eliminado')),
     entidad_verificadora TEXT,  -- NULLABLE
     fecha_verificacion TIMESTAMP,  -- NULLABLE
     
-    -- Información adicional
-    notas_internas TEXT,  -- NULLABLE
+    -- Información adicional (PRIVADO)
+    notas_internas TEXT,  -- NULLABLE - Solo admins
     capacidad_estado TEXT,  -- NULLABLE
     
     -- Necesidades
     necesidades_raw TEXT,  -- NULLABLE
-    necesidades_tags JSONB,  -- NULLABLE - Array de strings
+    necesidades_tags JSONB,  -- NULLABLE - Estructura compleja con categorías de necesidades
     
     -- Detalles de zona afectada
     nombre_zona TEXT,  -- NULLABLE
     habitado_actualmente BOOLEAN DEFAULT FALSE,
     cantidad_ninos INTEGER DEFAULT 0,
+    cantidad_adolescentes INTEGER DEFAULT 0,  -- NUEVO
     cantidad_adultos INTEGER DEFAULT 0,
     cantidad_ancianos INTEGER DEFAULT 0,
     animales_detalle TEXT,  -- NULLABLE
     
     -- Riesgos y logística
-    riesgo_asbesto BOOLEAN DEFAULT FALSE,
+    riesgo_asbesto TEXT,  -- NULLABLE: "si", "no", "no_se" (antes era BOOLEAN)
+    foto_asbesto TEXT,  -- NULLABLE - URL de foto específica de asbesto
     logistica_llegada TEXT,  -- NULLABLE
+    tipos_acceso JSONB,  -- NULLABLE - Array de tipos ["auto", "4x4", "pie", "camion"]
     requiere_voluntarios BOOLEAN DEFAULT FALSE,
-    urgencia TEXT,  -- NULLABLE
     
     -- Evidencia
     evidencia_fotos JSONB,  -- NULLABLE - Array de URLs
+    
+    -- Infraestructura disponible
+    tiene_banos BOOLEAN DEFAULT FALSE,
+    tiene_electricidad BOOLEAN DEFAULT FALSE,
+    tiene_senal BOOLEAN DEFAULT FALSE,
+    
+    -- Datos sensibles (PRIVADO - solo autoridades)
+    fallecidos_reportados BOOLEAN DEFAULT FALSE,  -- PRIVADO
+    
+    -- Archivos adicionales
+    archivo_kml TEXT,  -- NULLABLE - URL del archivo KML para rutas complejas
     
     -- Timestamps
     created TIMESTAMP DEFAULT NOW(),
@@ -107,6 +124,8 @@ CREATE INDEX IF NOT EXISTS idx_puntos_categoria ON puntos(categoria);
 CREATE INDEX IF NOT EXISTS idx_puntos_ciudad ON puntos(ciudad);
 CREATE INDEX IF NOT EXISTS idx_puntos_subtipo ON puntos(subtipo);
 CREATE INDEX IF NOT EXISTS idx_puntos_created ON puntos(created);
+CREATE INDEX IF NOT EXISTS idx_puntos_nivel_urgencia ON puntos(nivel_urgencia);
+CREATE INDEX IF NOT EXISTS idx_puntos_habitado ON puntos(habitado_actualmente);
 
 -- ============================================================================
 -- DATOS INICIALES

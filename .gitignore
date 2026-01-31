@@ -75,3 +75,5 @@ backend/server/*.log
 test-*.html
 
 .venv
+
+src/data
