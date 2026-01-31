@@ -611,16 +611,22 @@ function setupUserModals() {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       
+      // Generar contraseña temporal (8 caracteres alfanuméricos)
+      tempPassword = Array.from({length: 8}, () => 
+        'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789'[Math.floor(Math.random() * 55)]
+      ).join('');
+      
       const userData = {
         email: document.getElementById('new-user-email').value,
         name: document.getElementById('new-user-name').value,
         organizacion: document.getElementById('new-user-organizacion').value,
-        rol: document.getElementById('new-user-rol').value
+        rol: document.getElementById('new-user-rol').value,
+        password: tempPassword,
+        must_change_password: true
       };
       
       try {
-        const result = await adminService.createUsuarioWithTempPassword(userData);
-        tempPassword = result.temp_password;
+        await adminService.createUsuarioWithTempPassword(userData);
         
         // Mostrar contraseña temporal
         const tempText = document.getElementById('temp-password-text');
@@ -629,8 +635,10 @@ function setupUserModals() {
         
         showToast('Usuario creado. ¡Copia la contraseña temporal!', 'success');
         
-        // Recargar lista
-        loadUsuarios();
+        // Recargar lista si existe la función
+        if (typeof loadUsuarios === 'function') {
+          loadUsuarios();
+        }
         
         // No cerrar modal para que copien la contraseña
       } catch (error) {

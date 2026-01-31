@@ -263,9 +263,13 @@ class AdminService {
       throw new Error('No tienes permisos para crear usuarios');
     }
     
-    // Añadir flag para indicar que debe cambiar contraseña
+    // Asegurar que el flag de cambio de contraseña esté presente
     const dataToSend = {
-      ...userData,
+      email: userData.email,
+      name: userData.name,
+      password: userData.password,
+      rol: userData.rol,
+      organizacion: userData.organizacion || '',
       must_change_password: true
     };
     
